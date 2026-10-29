@@ -4,7 +4,7 @@
   "description": "ZDM for 32-bit and legacy Windows (7, 8, 8.1)",
   "main": "stage/desktop/main.cjs",
   "private": true,
-  "license": "MIT",
+  "license": "Apache-2.0",
   "author": "Zelvior (Faizan Raza) <https://github.com/zelvior/>; core by Ahmad Khattak <https://github.com/zelvior/>",
   "scripts": {
     "stage": "node stage.mjs",

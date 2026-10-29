@@ -12,7 +12,7 @@
     "url": "https://github.com/zelvior/zdm/issues"
   },
   "author": "ZDM contributors",
-  "license": "MIT",
+  "license": "Apache-2.0",
   "scripts": {
     "start": "electron .",
     "test": "node --test tests/*.test.mjs integration/*.test.cjs extension/*.test.cjs",
@@ -40,6 +40,7 @@
       "extension/**/*",
       "THIRD-PARTY.md",
       "LICENSE",
+      "NOTICE",
       "package.json",
       "!**/*.test.cjs",
       "!**/*.test.mjs",

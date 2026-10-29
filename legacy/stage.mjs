@@ -13,6 +13,6 @@ for (const dir of ['desktop', 'core', 'renderer', 'assets', 'integration', 'exte
 await fs.copyFile(path.join(here, 'sabr.legacy.mjs'), path.join(stage, 'core', 'sabr.mjs'));
 await fs.copyFile(path.join(stage, 'extension', 'manifest.legacy.json'), path.join(stage, 'extension', 'manifest.json'));
 await fs.copyFile(path.join(here, 'CREDITS.md'), path.join(stage, 'CREDITS.md'));
-for (const file of ['THIRD-PARTY.md', 'LICENSE']) await fs.copyFile(path.join(root, file), path.join(stage, file));
+for (const file of ['THIRD-PARTY.md', 'LICENSE', 'NOTICE']) await fs.copyFile(path.join(root, file), path.join(stage, file));
 // ESM scope for core/*.mjs is by extension, but keep the stage self-describing.
 console.log('Legacy stage ready:', stage);

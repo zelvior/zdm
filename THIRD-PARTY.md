@@ -1,6 +1,6 @@
 # Third-party components
 
-ZDM is MIT licensed (see [LICENSE](LICENSE)). It bundles or uses the following components, each under its own license.
+ZDM is licensed under the Apache License 2.0 (see [LICENSE](LICENSE) and [NOTICE](NOTICE)). It bundles or uses the following components, each under its own license.
 
 ## FFmpeg (via ffmpeg-static)
 

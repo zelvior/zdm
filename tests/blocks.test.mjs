@@ -362,6 +362,7 @@ test('engine: snapshot exposes protocol and live transfer info but never the raw
   const snap = engine.snapshot().downloads.find(x => x.id === id);
   assert.equal('ranges' in snap, false); assert.equal(snap.protocol, 'http/1.1');
   await until(() => d.status === 'complete');
+  await engine.persistChain; // 'complete' is set before the history write finishes; wait for that write
   const persisted = JSON.parse(await fs.readFile(engine.statePath, 'utf8')).downloads[0];
   assert.equal('transfer' in persisted, false); assert.equal(persisted.integrity.sha256, sha(data));
 });

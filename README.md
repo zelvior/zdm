@@ -63,4 +63,4 @@ Release steps: [docs/RELEASING.md](docs/RELEASING.md). Performance design: [docs
 
 ## License
 
-MIT. See [LICENSE](LICENSE) and [THIRD-PARTY.md](THIRD-PARTY.md).
+Apache License 2.0. See [LICENSE](LICENSE), [NOTICE](NOTICE) and [THIRD-PARTY.md](THIRD-PARTY.md).

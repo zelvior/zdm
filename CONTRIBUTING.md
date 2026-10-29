@@ -27,4 +27,4 @@ Node.js 22 is required. `npm test` runs the engine, extension and native-host te
 - UI changes stay in the black-and-white theme: no colour accents, no gradients, square corners. Meaning must never depend on colour alone.
 - Do not add DRM circumvention or credential harvesting. Such pull requests are closed.
 
-By contributing you agree your work is released under the project's MIT license.
+By contributing you agree your work is released under the project's Apache License 2.0, as described in section 5 of that license (inbound = outbound).
