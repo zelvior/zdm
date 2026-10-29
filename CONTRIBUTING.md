@@ -28,3 +28,18 @@ Node.js 22 is required. `npm test` runs the engine, extension and native-host te
 - Do not add DRM circumvention or credential harvesting. Such pull requests are closed.
 
 By contributing you agree your work is released under the project's Apache License 2.0, as described in section 5 of that license (inbound = outbound).
+
+## Changing the logo
+
+The two source logos live in `docs/branding/` (`zdm-logo.jpg`, white on black, and the transparent `zdm-wordmark.png`). Every icon and
+installer image is generated from `zdm-logo.jpg` so that all sizes stay consistent:
+
+```sh
+pip install pillow numpy
+python scripts/generate-brand-assets.py
+npm test            # tests/branding.test.mjs checks sizes, ICO frames and the macOS menu bar template
+```
+
+Below 96 px the "Z" mark is used (the full wordmark is unreadable that small), from 96 px up the full logo with its tagline.
+If you replace `zdm-logo.jpg` with different artwork, adjust the coordinates at the top of the script (the letter box and the cut line
+between Z and D).

@@ -51,7 +51,9 @@ if (process.argv.includes('--native-host')) {
       catch (error) { dialog.showErrorBox('Browser connection unavailable', error.message); }
       const root = path.join(__dirname, '..');
       const appIconPath = path.join(root, 'assets', 'app-icon.png');
-      const trayIconPath = path.join(root, 'assets', 'tray-icon.png');
+      // Windows/Linux trays show the black badge. The macOS menu bar needs a "template" image (black artwork on transparency,
+      // named ...Template.png) so the system can recolour it for light and dark menu bars; an opaque badge would be a black square.
+      const trayIconPath = path.join(root, 'assets', process.platform === 'darwin' ? 'tray-iconTemplate.png' : 'tray-icon.png');
       let integrationRoot = root;
       if (app.isPackaged) {
         const fs = require('node:fs/promises');
@@ -249,9 +251,7 @@ if (process.argv.includes('--native-host')) {
         } catch { /* clipboard can be locked by another application */ }
       }, 700);
       clipboardTimer.unref();
-      let icon = nativeImage.createFromPath(trayIconPath);
-      // The tray icon is dark artwork on transparency: as a macOS template image it follows the light/dark menu bar.
-      if (process.platform === 'darwin') { icon = icon.resize({ height: 18 }); icon.setTemplateImage(true); }
+      const icon = nativeImage.createFromPath(trayIconPath); // macOS also loads tray-iconTemplate@2x.png by name
       tray = new Tray(icon);
       tray.setToolTip('ZDM');
       tray.setContextMenu(Menu.buildFromTemplate([{ label: 'Show downloads', click: () => window.show() }, { label: 'About ZDM', click: () => openAbout().catch(() => {}) }, { type: 'separator' }, { label: 'Quit', click: () => app.quit() }]));
