@@ -2,6 +2,7 @@
   "name": "zdm",
   "version": "0.1.0",
   "description": "A cross-platform download manager (Windows, macOS, Linux) with segmented transfers and browser video capture",
+  "homepage": "https://github.com/zelvior/zdm",
   "main": "desktop/main.cjs",
   "private": true,
   "repository": {

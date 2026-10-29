@@ -104,7 +104,7 @@ jobs:
           else TAG="v${VERSION}-r${GITHUB_RUN_NUMBER}"; fi
           TAG="$(printf '%s' "$TAG" | tr -d '[:space:]')"
           case "$TAG" in v*|V*) TAG="v${TAG#?}";; *) TAG="v${TAG}";; esac   # "0.2.0" -> "v0.2.0"
-          if ! printf '%s' "$TAG" | grep -Eq '^v[0-9]+(\.[0-9]+)*([-+.][0-9A-Za-z.]+)?$'; then
+          if ! printf '%s' "$TAG" | grep -Eq '^v[0-9]+(\.[0-9]+)*([-+][0-9A-Za-z]+(\.[0-9A-Za-z]+)*)?$'; then
             echo "::error::Tag must look like 0.2.0 or v0.2.0 (got '$TAG')"; exit 1
           fi
           TITLE="${IN_TITLE:-ZDM ${TAG}}"
@@ -132,7 +132,10 @@ jobs:
               exit 1
             fi
             gh release upload "$TAG" ZDM-32bit.exe ZDM-64bit.exe SHA256SUMS.txt --clobber --repo "$GITHUB_REPOSITORY"
-            gh release edit "$TAG" --title "$TITLE" --notes-file ../notes.md $FLAGS --repo "$GITHUB_REPOSITORY"
+            # The files are already uploaded at this point. If GitHub rejects the metadata update, the existing release is
+            # usually a draft or has an "untagged-..." tag: publish or delete it on the Releases page, or use a new tag.
+            gh release edit "$TAG" --title "$TITLE" --notes-file ../notes.md $FLAGS --repo "$GITHUB_REPOSITORY" \
+              || echo "::warning::Files were attached to $TAG, but its title and notes could not be updated. Check on the Releases page whether it is a draft or an untagged release."
           else
             gh release create "$TAG" ZDM-32bit.exe ZDM-64bit.exe SHA256SUMS.txt --title "$TITLE" --notes-file ../notes.md --generate-notes --target "$GITHUB_SHA" $FLAGS --repo "$GITHUB_REPOSITORY"
           fi

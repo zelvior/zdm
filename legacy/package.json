@@ -2,6 +2,7 @@
   "name": "zdm-legacy",
   "version": "0.1.0",
   "description": "ZDM for 32-bit and legacy systems (Windows 7/8/8.1, older macOS, older and 32-bit Linux)",
+  "homepage": "https://github.com/zelvior/zdm",
   "main": "stage/desktop/main.cjs",
   "private": true,
   "license": "Apache-2.0",

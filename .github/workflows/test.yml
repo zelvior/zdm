@@ -18,4 +18,7 @@ jobs:
           node-version: '22'
           cache: npm
       - run: npm ci
+      - name: Bundled ffmpeg starts?
+        continue-on-error: true
+        run: node scripts/ffmpeg-probe.mjs
       - run: npm test

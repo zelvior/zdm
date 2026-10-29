@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import path from 'node:path';
 import { createRequire } from 'node:module';
 import { bundledYtdlpPath, ytdlpFileName } from '../core/tools.mjs';
 import { ytdlpTarget, targetNames } from '../scripts/ytdlp-assets.mjs';
@@ -10,7 +11,8 @@ test('the bundled yt-dlp is an .exe only on Windows', () => {
   assert.equal(ytdlpFileName('win32'), 'yt-dlp.exe');
   assert.equal(ytdlpFileName('linux'), 'yt-dlp');
   assert.equal(ytdlpFileName('darwin'), 'yt-dlp');
-  assert.equal(bundledYtdlpPath({ platform: 'linux', packaged: true, resourcesPath: '/opt/zdm/resources' }), '/opt/zdm/resources/tools/yt-dlp');
+  assert.equal(bundledYtdlpPath({ platform: 'linux', packaged: true, resourcesPath: '/opt/zdm/resources' }), path.join('/opt/zdm/resources', 'tools', 'yt-dlp')); // path.join: the host's own separator
+  assert.equal(path.basename(bundledYtdlpPath({ platform: 'win32', packaged: true, resourcesPath: 'C:\\zdm\\resources' })), 'yt-dlp.exe');
   assert.match(bundledYtdlpPath({ platform: 'win32', packaged: false }), /vendor[\\/]yt-dlp\.exe$/);
 });
 
