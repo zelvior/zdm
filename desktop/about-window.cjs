@@ -10,7 +10,7 @@ function buildAboutInfo({ versions = {}, platform = process.platform, arch = pro
   const read = name => { try { return fs.readFileSync(path.join(root, name), 'utf8'); } catch { return ''; } };
   return {
     name: 'ZDM', packaged,
-    description: 'A Windows download manager with segmented transfers, adaptive connections, HTTP/2 multiplexing, on-the-fly integrity checks and browser video capture.',
+    description: 'A cross-platform download manager (Windows, macOS, Linux) with segmented transfers, adaptive connections, HTTP/2 multiplexing, on-the-fly integrity checks and browser video capture.',
     features: ['HTTP/1.1 and HTTP/2 (ALPN) range downloads in blocks that grow from 2 MB to 64 MB with the file size (built for 500 GB+ files)', 'Automatic scale-down and Retry-After handling on HTTP 429 / 503', 'Adaptive block sizing, slow-connection dropping and mirror balancing', 'SHA-256 and MD5 computed in a worker thread while downloading', 'Unencrypted HLS to MP4, separate audio/video muxing, browser extension'],
     runtime: { Electron: versions.electron || '', Chromium: versions.chrome || '', 'Node.js': versions.node || '', V8: versions.v8 || '', Platform: `${platform} ${arch}`, 'Data folder': dataDirectory || '' },
     links: LINKS, license: read('LICENSE'), thirdParty: read('THIRD-PARTY.md')

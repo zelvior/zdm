@@ -4,7 +4,9 @@ ZDM connects to the browser extension through Chrome's **native messaging**.
 
 - **Pairing:** the extension has a fixed ID (see [../docs/BROWSER-DISTRIBUTION.md](../docs/BROWSER-DISTRIBUTION.md)). When ZDM starts it registers
   its native host for Chrome, Edge and Firefox, re-checks every 15 seconds and repairs a missing registry entry, manifest, launcher or ID.
-- **Flow:** the browser starts `native-host.exe` (built from `NativeHostLauncher.cs`, with a `native-host.cmd` fallback). It runs
+- **Flow:** the browser starts the launcher: on Windows `native-host.exe` (built from `NativeHostLauncher.cs`, with a `native-host.cmd` fallback),
+  on macOS and Linux `native-host.sh`. On Windows the browser finds it through a registry key; on macOS and Linux ZDM writes the native
+  messaging manifest into the browser's own folder (for example `~/.config/google-chrome/NativeMessagingHosts/`). It runs
   `native-host.cjs`, which forwards bounded, validated JSON to the authenticated loopback bridge and starts ZDM if it is closed.
 - **Privacy:** cookies, authorization, user agent and referrer stay in extension memory; only context observed for the selected URL and tab
   is passed on. Credentials are excluded from history and stripped on cross-origin redirects.

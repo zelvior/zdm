@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "ZDM Integration",
   "version": "0.2.0",
-  "description": "Send links and detected direct video downloads to ZDM for Windows.",
+  "description": "Send links and detected direct video downloads to the ZDM desktop app.",
   "permissions": ["nativeMessaging", "storage", "activeTab", "contextMenus", "webRequest", "downloads"],
   "host_permissions": ["http://*/*", "https://*/*"],
   "background": {"scripts": ["hls.js", "youtube-media.js", "background.js"]},

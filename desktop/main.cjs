@@ -9,6 +9,8 @@ if (process.argv.includes('--native-host')) {
 } else {
   const { app, BrowserWindow, ipcMain, dialog, shell, clipboard, Tray, Menu, nativeImage, Notification } = require('electron');
   app.setName('ZDM');
+  // AppImage on Linux distributions that restrict user namespaces cannot start Chromium's sandbox (see linux-sandbox.cjs).
+  if (require('./linux-sandbox.cjs').needsNoSandbox()) app.commandLine.appendSwitch('no-sandbox');
   // AppData writes can be virtualized when launched by an MSIX development app.
   // Chrome launched normally must see the same connector, bridge, and history.
   const sharedDataDirectory = path.join(app.getPath('home'), '.zdm');
@@ -63,20 +65,16 @@ if (process.argv.includes('--native-host')) {
           // executable files: do not overwrite an already identical connector.
           filter: require('./resource-copy.cjs').copyIfChanged
         });
-        const quoteBatch = value => String(value).replaceAll('%', '%%');
-        await fs.writeFile(path.join(integrationRoot, 'integration', 'native-host.cmd'),
-          `@echo off\r\nset ELECTRON_RUN_AS_NODE=1\r\n"${quoteBatch(app.getPath('exe'))}" "%~dp0native-host.cjs"\r\n`);
       }
-      // Use the bundled runtime even in development; browsers need not inherit Node's PATH.
-      if (!app.isPackaged) {
-        const fs = require('node:fs/promises');
-        await fs.writeFile(path.join(integrationRoot, 'integration', 'native-host.cmd'), `@echo off\r\nset ELECTRON_RUN_AS_NODE=1\r\n"${app.getPath('exe').replaceAll('%', '%%')}" "%~dp0native-host.cjs"\r\n`);
-      }
+      // The browser starts a small launcher that runs the connector with the app's own runtime (Windows: .cmd, macOS/Linux: .sh).
+      // Inside an AppImage the real executable is a temporary mount, so the .AppImage file itself is used.
+      const runtimeExe = require('./platform.cjs').runtimeExecutable({ exe: app.getPath('exe') });
+      await require('./browser-registration.cjs').writeHostLauncher(integrationRoot, runtimeExe);
       let connectedBrowsers = [], connectionError = '', registration = [];
       let nativeHostError = '';
-      try { await require('./browser-registration.cjs').prepareNativeHost(integrationRoot, app.getPath('exe')); }
+      try { await require('./browser-registration.cjs').prepareNativeHost(integrationRoot, runtimeExe); }
       catch (error) { nativeHostError = error.message; }
-      await require('node:fs/promises').writeFile(path.join(integrationRoot, 'integration', 'desktop-launch.json'), JSON.stringify({executable:app.getPath('exe'),args:app.isPackaged ? [] : [root]}));
+      await require('node:fs/promises').writeFile(path.join(integrationRoot, 'integration', 'desktop-launch.json'), JSON.stringify({executable:runtimeExe,args:app.isPackaged ? [] : [root]}));
       const connectBrowsers = async () => {
         const registrationApi = require('./browser-registration.cjs'), options = { dataDirectory: app.getPath('userData'), integrationRoot };
         // The .cmd launcher still works when the .NET compiler failed, so a build error no longer blocks registration.
@@ -108,7 +106,11 @@ if (process.argv.includes('--native-host')) {
       ipcMain.handle('about:info', event => { if (!fromAbout(event)) throw new Error('Untrusted renderer.'); return buildAboutInfo({ versions: process.versions, root, dataDirectory: sharedDataDirectory, packaged: app.isPackaged }); });
       ipcMain.handle('about:copy', (event, text) => { if (!fromAbout(event) || typeof text !== 'string' || text.length > 4096) throw new Error('Untrusted renderer.'); clipboard.writeText(text); });
       ipcMain.handle('about:open', async (event, url) => { if (!fromAbout(event) || !ABOUT_LINKS.some(link => link.url === url)) throw new Error('Untrusted renderer.'); await shell.openExternal(url); });
-      const applyLoginItem = () => { if (app.isPackaged) { try { app.setLoginItemSettings({ openAtLogin: engine.settings.launchAtLogin === true }); } catch { /* unsupported platform */ } } };
+      const applyLoginItem = () => {
+        if (!app.isPackaged) return;
+        if (process.platform === 'linux') { require('./linux-autostart.cjs').setAutostart(engine.settings.launchAtLogin === true, { executable: runtimeExe }).catch(() => { /* read-only home or unsupported desktop */ }); return; }
+        try { app.setLoginItemSettings({ openAtLogin: engine.settings.launchAtLogin === true }); } catch { /* unsupported platform */ }
+      };
       applyLoginItem();
       const handlers = {
         snapshot,
@@ -136,7 +138,10 @@ if (process.argv.includes('--native-host')) {
             const result = await shell.openPath(d.path); if (result) throw new Error(result);
           } else if (action === 'openWith') {
             if (d.status !== 'complete' || !d.path) throw new Error('This download has not finished.');
-            await new Promise((resolve,reject)=>require('node:child_process').execFile(path.join(process.env.SystemRoot||'C:\\Windows','System32','OpenWith.exe'),[d.path],{windowsHide:true},error=>error?reject(error):resolve()));
+            // Windows has a system "Open with" chooser. macOS and Linux have no equivalent command, so the file is revealed
+            // in the file manager where its context menu offers "Open With".
+            if (process.platform === 'win32') await new Promise((resolve,reject)=>require('node:child_process').execFile(path.join(process.env.SystemRoot||'C:\\Windows','System32','OpenWith.exe'),[d.path],{windowsHide:true},error=>error?reject(error):resolve()));
+            else shell.showItemInFolder(d.path);
           } else if (action === 'reveal') { if (d.path) shell.showItemInFolder(d.path); else await shell.openPath(d.directory); }
           else return engine.action(id, action);
         },
@@ -174,6 +179,7 @@ if (process.argv.includes('--native-host')) {
       desktopReady();
       const command = name => () => window.webContents.send('downloader:command', name);
       Menu.setApplicationMenu(Menu.buildFromTemplate([
+        ...(process.platform === 'darwin' ? [{ role: 'appMenu' }] : []),
         { label: 'Tasks', submenu: [ { label: 'Add new download…', accelerator: 'CmdOrCtrl+N', click: command('add') }, { label: 'Add batch download…', click: command('add') }, { label: 'Add batch download from clipboard', click: command('paste') }, { type: 'separator' },
           { label: 'Export', submenu: [{ label: 'To text file…', click: async () => {
             const result = await dialog.showSaveDialog(window, { defaultPath: 'downloads.txt', filters: [{ name: 'URL list', extensions: ['txt'] }] });
@@ -243,11 +249,14 @@ if (process.argv.includes('--native-host')) {
         } catch { /* clipboard can be locked by another application */ }
       }, 700);
       clipboardTimer.unref();
-      const icon = nativeImage.createFromPath(trayIconPath);
+      let icon = nativeImage.createFromPath(trayIconPath);
+      // The tray icon is dark artwork on transparency: as a macOS template image it follows the light/dark menu bar.
+      if (process.platform === 'darwin') { icon = icon.resize({ height: 18 }); icon.setTemplateImage(true); }
       tray = new Tray(icon);
       tray.setToolTip('ZDM');
       tray.setContextMenu(Menu.buildFromTemplate([{ label: 'Show downloads', click: () => window.show() }, { label: 'About ZDM', click: () => openAbout().catch(() => {}) }, { type: 'separator' }, { label: 'Quit', click: () => app.quit() }]));
       tray.on('double-click', () => window.show());
+      if (process.platform !== 'win32') tray.on('click', () => window.show()); // Linux/macOS trays have no double-click
       window.on('close', event => { if (quitting) return; if (engine.settings.closeToTray === false) { quitting = false; event.preventDefault(); app.quit(); return; } event.preventDefault(); window.hide(); });
       app.on('activate', () => window.show());
     }).catch(error => { dialog.showErrorBox('ZDM could not start', error.stack || error.message); quitting = true; app.quit(); });

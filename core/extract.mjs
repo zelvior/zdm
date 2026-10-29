@@ -3,6 +3,7 @@ import { spawn } from 'node:child_process';
 import { promises as fs } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
+import { bundledYtdlpPath } from './tools.mjs';
 
 // Generic media extraction for any website / any container:
 //  - yt-dlp understands page URLs of ~1800 sites and picks the best streams (HLS, DASH, progressive, split audio/video);
@@ -16,7 +17,7 @@ export function validFormatSelector(value) { return typeof value === 'string' &&
 
 export function ytdlpCommand() {
   if (process.env.ZDM_YTDLP) return process.env.ZDM_YTDLP;
-  return process.versions.electron && process.resourcesPath && !process.defaultApp ? path.join(process.resourcesPath, 'tools', 'yt-dlp.exe') : fileURLToPath(new URL('../vendor/yt-dlp.exe', import.meta.url));
+  return bundledYtdlpPath();
 }
 let ffmpegPath;
 async function ffmpegCommand() {

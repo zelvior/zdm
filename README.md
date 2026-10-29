@@ -1,6 +1,6 @@
 # ZDM
 
-**ZDM** is a fast download manager for Windows, made by **Zelvior**. It splits big files into blocks, downloads them over many
+**ZDM** is a fast download manager for **Windows, macOS and Linux**, made by **Zelvior**. It splits big files into blocks, downloads them over many
 connections at once, takes over your browser's downloads, and can pull the video out of almost any web page.
 
 Black-and-white interface. No ads, no accounts, no telemetry.
@@ -24,10 +24,18 @@ DRM-protected streams (Widevine, PlayReady, FairPlay) are refused. ZDM does not 
 
 ## Install
 
-1. Download **ZDM-Setup.exe** from the project's Releases page (Windows 10/11, 64-bit). Windows 7 / 8 / 8.1 and 32-bit PCs use the
-   **ZDM-32bit.exe** / **ZDM-64bit.exe** installers; see [docs/LEGACY.md](docs/LEGACY.md).
-2. Run it. The installer is unsigned, so Windows may show an unknown-publisher warning. Verify `SHA256SUMS.txt` before running.
-3. Start **ZDM**. Closing the window keeps it running in the system tray (switchable in Options).
+| System | Download from the Releases page |
+|---|---|
+| **Windows 10/11, 64-bit** | `ZDM-Setup.exe` |
+| **Windows 7 / 8 / 8.1, or 32-bit Windows** | `ZDM-32bit.exe` / `ZDM-64bit.exe` |
+| **macOS** (Apple Silicon / Intel) | `ZDM-mac-arm64.dmg` / `ZDM-mac-x64.dmg` |
+| **Older macOS** (10.13 and newer, Intel) | `ZDM-legacy-mac-x64.dmg` |
+| **Linux** 64-bit (Intel/AMD, ARM64) | `ZDM-linux-*.AppImage`, `.deb` or `.rpm` |
+| **Older Linux**, and 32-bit Linux (experimental) | `ZDM-legacy-linux-*` |
+
+The installers and apps are unsigned: Windows SmartScreen and macOS Gatekeeper will warn the first time. Verify the SHA-256 file on the
+release page before running. Closing the window keeps ZDM in the system tray (switchable in Options). Details per system:
+[docs/INSTALL.md](docs/INSTALL.md) and [docs/LEGACY.md](docs/LEGACY.md) (what "legacy" can and cannot cover).
 
 Full walkthrough, including the browser extension: [docs/INSTALL.md](docs/INSTALL.md).
 
@@ -39,14 +47,18 @@ Full walkthrough, including the browser extension: [docs/INSTALL.md](docs/INSTAL
 
 ## Build from source
 
-```powershell
+```sh
 npm ci
 npm test
 npm start                 # run the app
-npm run dist              # NSIS installer -> release/ZDM-Setup.exe
+npm run dist              # Windows: NSIS installer -> release/ZDM-Setup.exe
+npm run dist:mac -- --arm64   # macOS (or --x64): .dmg and .zip -> release/
+npm run dist:linux -- --x64   # Linux (or --arm64): .AppImage, .deb, .rpm -> release/
 ```
 
-Requires Node.js 22 and Windows for packaging. The 32-bit / Windows 7 track lives in [`legacy/`](legacy/).
+Requires Node.js 22. Build each package on its own operating system (Windows installer on Windows, `.dmg` on macOS, Linux packages on
+Linux); before `dist:mac`/`dist:linux` fetch yt-dlp with `node scripts/fetch-ytdlp.mjs vendor mac` (or `linux-x64`, `linux-arm64`).
+The 32-bit and older-system track lives in [`legacy/`](legacy/).
 Release steps: [docs/RELEASING.md](docs/RELEASING.md). Performance design: [docs/PERFORMANCE.md](docs/PERFORMANCE.md).
 
 ## Project layout

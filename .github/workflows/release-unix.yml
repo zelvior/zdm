@@ -1,0 +1,183 @@
+name: Build and release macOS and Linux apps (modern and legacy)
+# Adds macOS and Linux downloads to the release that release-legacy.yml creates for Windows. Run it with the SAME tag
+# to attach the files to that release, or with a new tag to create a release that only holds these files.
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Release tag, e.g. 0.2.0 or v0.2.0 (the v is added). Empty = v<package version>-r<run number>'
+        required: false
+        default: ''
+      title:
+        description: 'Release title when a NEW release is created (empty = "ZDM <tag>")'
+        required: false
+        default: ''
+      prerelease:
+        description: 'Mark a NEW release as pre-release'
+        type: boolean
+        default: false
+permissions:
+  contents: read
+jobs:
+  modern:
+    name: ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { name: macos-x64, os: macos-latest, platform: mac, arch: x64, ytdlp: mac }
+          - { name: macos-arm64, os: macos-latest, platform: mac, arch: arm64, ytdlp: mac }
+          - { name: linux-x64, os: ubuntu-latest, platform: linux, arch: x64, ytdlp: linux-x64 }
+          - { name: linux-arm64, os: ubuntu-24.04-arm, platform: linux, arch: arm64, ytdlp: linux-arm64 }
+    env:
+      # ffmpeg-static downloads the binary for this architecture, which can differ from the machine running the build (macOS x64 on an Apple Silicon runner).
+      npm_config_arch: ${{ matrix.arch }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Linux packaging tools
+        if: matrix.platform == 'linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y rpm
+          if [ "${{ matrix.arch }}" = "arm64" ]; then
+            # electron-builder's bundled fpm only runs on x86-64.
+            sudo apt-get install -y ruby ruby-dev build-essential
+            sudo gem install --no-document fpm
+            echo "USE_SYSTEM_FPM=true" >> "$GITHUB_ENV"
+          fi
+      - run: npm ci
+      - name: Fetch and verify yt-dlp (page video extraction)
+        run: node scripts/fetch-ytdlp.mjs vendor ${{ matrix.ytdlp }}
+      - name: Build
+        run: npm run dist:${{ matrix.platform }} -- --${{ matrix.arch }}
+      - name: List results
+        run: ls -l release
+      - uses: actions/upload-artifact@v7
+        with:
+          name: modern-${{ matrix.name }}
+          path: |
+            release/ZDM-mac-*.dmg
+            release/ZDM-mac-*.zip
+            release/ZDM-linux-*.AppImage
+            release/ZDM-linux-*.deb
+            release/ZDM-linux-*.rpm
+          if-no-files-found: error
+          retention-days: 7
+  legacy:
+    name: legacy-${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { name: macos-x64, os: macos-latest, script: 'dist:mac', arch: x64, ytdlp: mac-legacy }
+          - { name: linux-x64, os: ubuntu-latest, script: 'dist:linux:x64', arch: x64, ytdlp: linux-x64 }
+          - { name: linux-ia32, os: ubuntu-latest, script: 'dist:linux:ia32', arch: ia32, ytdlp: linux-ia32 }
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+      - name: Install dependencies
+        if: matrix.arch == 'x64'
+        working-directory: legacy
+        env:
+          npm_config_arch: x64
+        run: npm install --no-audit --no-fund
+      - name: Install dependencies (32-bit Linux)
+        if: matrix.arch == 'ia32'
+        working-directory: legacy
+        run: |
+          # Electron 22 has no 32-bit Linux build, so skip its downloader; electron-builder fetches Electron 17.4.11 (the last 32-bit Linux release) for this target.
+          npm install --no-audit --no-fund --ignore-scripts
+          npm_config_arch=ia32 npm_config_platform=linux node node_modules/ffmpeg-static/install.js
+          file node_modules/ffmpeg-static/ffmpeg
+          file node_modules/ffmpeg-static/ffmpeg | grep -q "ELF 32-bit"
+      - name: Fetch and verify yt-dlp (page video extraction)
+        # The macOS legacy build may not exist in every yt-dlp release; the app still works without page extraction.
+        continue-on-error: ${{ matrix.ytdlp == 'mac-legacy' }}
+        run: node scripts/fetch-ytdlp.mjs vendor ${{ matrix.ytdlp }}
+      - name: Stage and verify legacy sources
+        working-directory: legacy
+        run: |
+          npm run stage
+          npm run verify
+      - name: Build
+        working-directory: legacy
+        run: npm run ${{ matrix.script }}
+      - name: List results
+        run: ls -l legacy/release
+      - uses: actions/upload-artifact@v7
+        with:
+          name: legacy-${{ matrix.name }}
+          path: |
+            legacy/release/ZDM-legacy-mac-*.dmg
+            legacy/release/ZDM-legacy-mac-*.zip
+            legacy/release/ZDM-legacy-linux-*.AppImage
+            legacy/release/ZDM-legacy-linux-*.deb
+          if-no-files-found: error
+          retention-days: 7
+  release:
+    needs: [modern, legacy]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/download-artifact@v8
+        with:
+          path: dist
+          merge-multiple: true
+      - name: Publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+          IN_TAG: ${{ inputs.tag }}
+          IN_TITLE: ${{ inputs.title }}
+          IN_PRERELEASE: ${{ inputs.prerelease }}
+        run: |
+          set -euo pipefail
+          VERSION=$(node -p "require('./package.json').version")
+          TAG="${IN_TAG:-v${VERSION}-r${GITHUB_RUN_NUMBER}}"
+          TAG="$(printf '%s' "$TAG" | tr -d '[:space:]')"
+          case "$TAG" in v*|V*) TAG="v${TAG#?}";; *) TAG="v${TAG}";; esac
+          if ! printf '%s' "$TAG" | grep -Eq '^v[0-9]+(\.[0-9]+)*([-+.][0-9A-Za-z.]+)?$'; then
+            echo "::error::Tag must look like 0.2.0 or v0.2.0 (got '$TAG')"; exit 1
+          fi
+          TITLE="${IN_TITLE:-ZDM ${TAG}}"
+          cd dist
+          ls -l
+          # A separate checksum file, so the Windows SHA256SUMS.txt of the same release is not replaced.
+          sha256sum ZDM-* > SHA256SUMS-macos-linux.txt
+          cat > ../notes.md <<NOTES
+          ## ${TITLE}
+
+          macOS and Linux builds (unsigned). Pick the file for your system; the legacy builds are for older systems.
+
+          | System | File |
+          |---|---|
+          | Current macOS, Apple Silicon | \`ZDM-mac-arm64.dmg\` |
+          | Current macOS, Intel | \`ZDM-mac-x64.dmg\` |
+          | Older macOS (10.13 and newer), Intel | \`ZDM-legacy-mac-x64.dmg\` |
+          | Linux 64-bit (Intel/AMD) | \`ZDM-linux-*.AppImage\`, \`.deb\` or \`.rpm\` |
+          | Linux ARM64 | \`ZDM-linux-arm64.AppImage\` or \`aarch64.rpm\` / \`arm64.deb\` |
+          | Older Linux, 64-bit | \`ZDM-legacy-linux-*\` |
+          | 32-bit Linux (experimental) | \`ZDM-legacy-linux-ia32.AppImage\` / \`i386.deb\` |
+
+          - macOS: the app is not notarized. Open it with right-click > Open, or run \`xattr -dr com.apple.quarantine /Applications/ZDM.app\`.
+          - Verify downloads with \`SHA256SUMS-macos-linux.txt\`. See docs/INSTALL.md and docs/LEGACY.md.
+          NOTES
+          FLAGS=""; if [ "${IN_PRERELEASE}" = "true" ]; then FLAGS="--prerelease"; fi
+          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "Release $TAG exists: attaching the macOS and Linux files to it."
+            gh release upload "$TAG" ZDM-* SHA256SUMS-macos-linux.txt --clobber --repo "$GITHUB_REPOSITORY"
+          else
+            gh release create "$TAG" ZDM-* SHA256SUMS-macos-linux.txt --title "$TITLE" --notes-file ../notes.md --generate-notes --target "$GITHUB_SHA" $FLAGS --repo "$GITHUB_REPOSITORY"
+          fi

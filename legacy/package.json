@@ -1,7 +1,7 @@
 {
   "name": "zdm-legacy",
   "version": "0.1.0",
-  "description": "ZDM for 32-bit and legacy Windows (7, 8, 8.1)",
+  "description": "ZDM for 32-bit and legacy systems (Windows 7/8/8.1, older macOS, older and 32-bit Linux)",
   "main": "stage/desktop/main.cjs",
   "private": true,
   "license": "Apache-2.0",
@@ -11,7 +11,10 @@
     "dist:ia32": "npm run stage && electron-builder --win nsis --ia32 --publish never -c.nsis.artifactName=ZDM-32bit.exe",
     "dist:x64": "npm run stage && electron-builder --win nsis --x64 --publish never -c.nsis.artifactName=ZDM-64bit.exe",
     "verify": "node verify.mjs",
-    "ffmpeg:ia32": "node fetch-ffmpeg.mjs"
+    "ffmpeg:ia32": "node fetch-ffmpeg.mjs",
+    "dist:mac": "npm run stage && electron-builder --mac dmg zip --x64 --publish never",
+    "dist:linux:x64": "npm run stage && electron-builder --linux AppImage deb --x64 --publish never",
+    "dist:linux:ia32": "npm run stage && electron-builder --linux AppImage deb --ia32 --publish never -c.electronVersion=17.4.11"
   },
   "devDependencies": {
     "electron": "22.3.27",
@@ -93,6 +96,53 @@
       "uninstallDisplayName": "${productName}",
       "deleteAppDataOnUninstall": false
     },
-    "npmRebuild": false
+    "npmRebuild": false,
+    "afterPack": "stage/build/after-pack.cjs",
+    "mac": {
+      "target": [
+        "dmg",
+        "zip"
+      ],
+      "category": "public.app-category.utilities",
+      "icon": "stage/assets/app-icon.png",
+      "artifactName": "ZDM-legacy-mac-${arch}.${ext}",
+      "identity": null,
+      "hardenedRuntime": false,
+      "gatekeeperAssess": false,
+      "extraResources": [
+        {
+          "from": "stage/vendor",
+          "to": "tools",
+          "filter": [
+            "yt-dlp"
+          ]
+        }
+      ]
+    },
+    "dmg": {
+      "sign": false
+    },
+    "linux": {
+      "target": [
+        "AppImage",
+        "deb"
+      ],
+      "category": "Network",
+      "icon": "stage/assets/app-icon.png",
+      "executableName": "zdm-legacy",
+      "artifactName": "ZDM-legacy-linux-${arch}.${ext}",
+      "synopsis": "Download manager (legacy build)",
+      "description": "ZDM legacy build for older and 32-bit Linux systems.",
+      "maintainer": "ZDM contributors <Zelvior@proton.me>",
+      "extraResources": [
+        {
+          "from": "stage/vendor",
+          "to": "tools",
+          "filter": [
+            "yt-dlp"
+          ]
+        }
+      ]
+    }
   }
 }

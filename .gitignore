@@ -1,5 +1,6 @@
 node_modules/
 vendor/*.exe
+vendor/yt-dlp
 integration/native-host.exe
 integration/runtime-path.txt
 integration/desktop-launch.json
@@ -10,6 +11,7 @@ TODO.md
 tests/QA.md
 .playwright-cli/
 integration/native-host.cmd
+integration/native-host.sh
 .env
 .env.*
 !.env.example

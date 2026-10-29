@@ -4,6 +4,7 @@ import {fileURLToPath} from 'node:url';
 import path from 'node:path';
 import {promises as fs} from 'node:fs';
 import ffmpeg from 'ffmpeg-static';
+import { bundledYtdlpPath } from './tools.mjs';
 
 export function youtubeUrl(value) {
   try {
@@ -37,7 +38,7 @@ export function choicesFromInfo(info,url) {
   return result;
 }
 function executable() {
-  return process.versions.electron&&process.resourcesPath&&!process.defaultApp?path.join(process.resourcesPath,'tools','yt-dlp.exe'):fileURLToPath(new URL('../vendor/yt-dlp.exe',import.meta.url));
+  return bundledYtdlpPath();
 }
 export function youtubeError(raw) {
   const message=String(raw);
