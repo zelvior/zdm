@@ -1,0 +1,15 @@
+*{box-sizing:border-box}body{width:390px;max-height:580px;margin:0;padding:18px;background:#000;color:#f0f0f0;font:13px system-ui}h1{font-size:19px;margin:0}header p,.hint,footer{color:#b3b3b3;font-size:11px;line-height:1.5}.tools{display:flex;gap:8px;margin:16px 0}button{background:#b3b3b3;color:#000;border:0;padding:8px 10px;border-radius:5px;cursor:pointer;font-weight:600}button:disabled{opacity:.4;cursor:default}.setting{display:flex;align-items:center;gap:6px}.item{border-top:1px solid #000;padding:11px 0;display:flex;gap:8px;align-items:start}.item span{flex:1;min-width:0;overflow-wrap:anywhere}.item small{display:block;color:#b3b3b3;margin-top:3px}.item button{padding:5px 9px}#status{color:#d9d9d9;overflow-wrap:anywhere}footer{border-top:1px solid #000;padding-top:12px}
+#live{margin:6px 0}#live h2{font-size:12px;margin:0 0 4px}.live-row{display:flex;align-items:center;gap:4px;margin:2px 0}.live-row span{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}#filter{flex:1;min-width:0}
+
+.hint.ok{color:#404040}.hint.bad{color:#000}
+
+/* ZDM theme: white on black, flat */
+*{border-radius:0!important}
+body{background:#000;color:#fff}
+button{background:#fff;color:#000;border:1px solid #fff}
+button:hover:not(:disabled){background:#000;color:#fff}
+.hint,header p,footer,.item small{color:#b3b3b3}
+.hint.ok{color:#fff}.hint.bad{color:#fff;text-decoration:underline}
+input[type=text]{background:#000;color:#fff;border:1px solid #fff;padding:4px}
+.item{border-top:1px solid #404040}
+:focus-visible{outline:2px solid #fff;outline-offset:2px}
