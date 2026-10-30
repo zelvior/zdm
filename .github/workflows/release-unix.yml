@@ -77,7 +77,7 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - { name: macos-x64, os: macos-latest, script: 'dist:mac', arch: x64, ytdlp: mac-legacy }
+          - { name: macos-x64, os: macos-latest, script: 'dist:mac', arch: x64, ytdlp: mac }
           - { name: linux-x64, os: ubuntu-latest, script: 'dist:linux:x64', arch: x64, ytdlp: linux-x64 }
           - { name: linux-ia32, os: ubuntu-latest, script: 'dist:linux:ia32', arch: ia32, ytdlp: linux-ia32 }
     steps:
@@ -101,8 +101,6 @@ jobs:
           file node_modules/ffmpeg-static/ffmpeg
           file node_modules/ffmpeg-static/ffmpeg | grep -q "ELF 32-bit"
       - name: Fetch and verify yt-dlp (page video extraction)
-        # The macOS legacy build may not exist in every yt-dlp release; the app still works without page extraction.
-        continue-on-error: ${{ matrix.ytdlp == 'mac-legacy' }}
         run: node scripts/fetch-ytdlp.mjs vendor ${{ matrix.ytdlp }}
       - name: Stage and verify legacy sources
         working-directory: legacy

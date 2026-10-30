@@ -20,7 +20,7 @@ test('every build target maps to one official yt-dlp release file and a bundled 
   assert.equal(ytdlpTarget('x64').asset, 'yt-dlp.exe'); // existing Windows workflows keep working
   assert.equal(ytdlpTarget('ia32').asset, 'yt-dlp_x86.exe');
   assert.deepEqual(ytdlpTarget('mac'), { asset: 'yt-dlp_macos', output: 'yt-dlp' });
-  assert.equal(ytdlpTarget('mac-legacy').asset, 'yt-dlp_macos_legacy');
+  assert.throws(() => ytdlpTarget('mac-legacy'), /Unknown yt-dlp target/); // yt-dlp discontinued that file
   assert.equal(ytdlpTarget('linux-x64').asset, 'yt-dlp_linux');
   assert.equal(ytdlpTarget('linux-arm64').asset, 'yt-dlp_linux_aarch64');
   assert.equal(ytdlpTarget('linux-ia32').needsPython, true, 'there is no standalone 32-bit Linux binary');

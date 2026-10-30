@@ -11,28 +11,25 @@ async function fake(t, script) {
   t.after(() => fs.rm(dir, { recursive: true, force: true }));
   const file = path.join(dir, 'ffmpeg');
   await fs.writeFile(file, `#!/bin/sh\n${script}\n`, { mode: 0o755 });
-  return { file, dir };
+  return file;
 }
 
-test('a crashed media process is retried once with CPU optimizations off', posix, async t => {
-  const { file, dir } = await fake(t, 'case "$*" in *"-cpuflags 0"*) echo ok > "$LAST"; exit 0;; *) kill -SEGV $$;; esac'.replace('$LAST', '"$(dirname "$0")/done"'));
-  await runFfmpeg(file, ['-i', 'x'], undefined, 'Could not combine');
-  assert.equal((await fs.readFile(path.join(dir, 'done'), 'utf8')).trim(), 'ok');
+test('a media process killed by a signal says which signal, instead of "exited null"', posix, async t => {
+  const file = await fake(t, 'kill -SEGV $$');
+  await assert.rejects(runFfmpeg(file, [], undefined, 'Could not combine video and audio'), /Could not combine video and audio: media process was stopped by SIGSEGV/);
 });
 
-test('a media process that fails normally is not retried and keeps its own message', posix, async t => {
-  const { file, dir } = await fake(t, 'echo run >> "$(dirname "$0")/runs"; echo "bad input" >&2; exit 1');
-  await assert.rejects(runFfmpeg(file, [], undefined, 'Could not combine'), /Could not combine: bad input/);
-  assert.equal((await fs.readFile(path.join(dir, 'runs'), 'utf8')).trim().split('\n').length, 1);
+test('a media process that fails normally reports its own message and exit', posix, async t => {
+  const message = await fake(t, 'echo "bad input" >&2; exit 1');
+  await assert.rejects(runFfmpeg(message, [], undefined, 'Could not create MP4'), /Could not create MP4: bad input/);
+  const silent = await fake(t, 'exit 3');
+  await assert.rejects(runFfmpeg(silent, [], undefined, 'Could not create MP4'), /media process exited 3/);
 });
 
-test('if the retry crashes too, both attempts are reported', posix, async t => {
-  const { file } = await fake(t, 'kill -SEGV $$');
-  await assert.rejects(runFfmpeg(file, [], undefined, 'Could not combine'), error => /stopped by SIGSEGV; again with CPU optimizations off: Could not combine: media process was stopped by SIGSEGV/.test(error.message));
-});
-
-test('an aborted download is not retried', posix, async t => {
-  const { file } = await fake(t, 'kill -SEGV $$');
-  const controller = new AbortController(); controller.abort();
-  await assert.rejects(runFfmpeg(file, [], controller.signal, 'Could not combine'), { name: 'AbortError' });
+test('an aborted download stops the media process', posix, async t => {
+  const file = await fake(t, 'sleep 5');
+  const controller = new AbortController();
+  const pending = runFfmpeg(file, [], controller.signal, 'Could not combine');
+  setTimeout(() => controller.abort(), 50);
+  await assert.rejects(pending, { name: 'AbortError' });
 });

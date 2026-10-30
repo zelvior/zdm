@@ -5,6 +5,7 @@ import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import { stripServiceTables } from '../core/ts-strip.mjs';
 
 const run = (args) => spawnSync(ffmpeg, ['-nostdin', '-v', 'error', '-y', ...args], { encoding: 'utf8' });
 const outcome = (r) => (r.error ? `spawn error: ${r.error.message}` : r.signal ? `CRASH (${r.signal})` : r.status === 0 ? 'ok' : `failed (exit ${r.status}) ${String(r.stderr).trim().slice(0, 120)}`);
@@ -27,8 +28,14 @@ const variants = {
   'explicit aac_adtstoasc': [...inputs, '-c', 'copy', '-bsf:a', 'aac_adtstoasc'],
   'audio only copy': ['-i', a, '-c', 'copy'],
   'video only copy': ['-i', v, '-c', 'copy'],
-  'app command, -cpuflags 0 (retry)': ['-cpuflags', '0', ...inputs, '-c', 'copy', '-movflags', '+faststart']
 };
+// The cause of the crash: DVB service tables (SDT, PID 0x11) in the MPEG-TS, which the static Linux ffmpeg cannot parse.
+// This is what ZDM now does before every mux: remove them, then run the very same command.
+const cleaned = path.join(dir, 'video.clean.track');
+fs.copyFileSync(v, cleaned);
+const removed = await stripServiceTables(cleaned);
+console.log(`service tables removed from the TS copy: ${removed} bytes`);
+variants['app command on the cleaned TS (what ZDM does)'] = ['-protocol_whitelist', 'file,pipe', '-i', cleaned, '-protocol_whitelist', 'file,pipe', '-i', a, '-map', '0:v:0', '-map', '1:a:0', '-c', 'copy', '-movflags', '+faststart'];
 for (const [name, args] of Object.entries(variants)) {
   const out = path.join(dir, `${name.replace(/\W+/g, '_')}.${name.startsWith('audio only') ? 'm4a' : 'mp4'}`);
   console.log(`${name.padEnd(34)}:`, outcome(run([...args, out])));

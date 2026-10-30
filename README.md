@@ -21,6 +21,11 @@
   <img alt="Platforms: Windows, macOS, Linux" src="https://img.shields.io/badge/platforms-Windows%20%7C%20macOS%20%7C%20Linux-000000?style=flat-square&labelColor=444444">
   <img alt="Node.js 22" src="https://img.shields.io/badge/node-22-000000?style=flat-square&labelColor=444444">
   <a href="https://github.com/zelvior/zdm/stargazers"><img alt="GitHub stars" src="https://img.shields.io/github/stars/zelvior/zdm?style=flat-square&color=000000&labelColor=444444"></a>
+  <a href="https://reporanker.com/repos/zelvior/zdm"><img alt="RepoRanker" src="https://reporanker.com/badge/zelvior/zdm"></a>
+</p>
+
+<p align="center">
+  <a href="https://www.producthunt.com/products/zelvior-download-manager-zdm?embed=true&amp;utm_source=badge-featured&amp;utm_medium=badge&amp;utm_campaign=badge-zelvior-download-manager-zdm" target="_blank" rel="noopener noreferrer"><img alt="Zelvior Download Manager (ZDM) - A download manager built for speed, simplicity, and control. | Product Hunt" width="250" height="54" src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=1297924&amp;theme=dark&amp;t=1793333086017"></a>
 </p>
 
 <p align="center">
@@ -142,6 +147,12 @@ Setup takes a minute: **[docs/INSTALL.md](docs/INSTALL.md#connect-your-browser)*
 - Request credentials (cookies and headers the browser hands over) are kept out of the download history and the interface, and cannot cross tabs or URLs.
 - DRM is refused, not bypassed.
 - Found a security problem? Please read **[SECURITY.md](SECURITY.md)**.
+
+## 📰 Around the web
+
+- **[ZDM on AlternativeTo](https://alternativeto.net/software/zdm-zelvior-download-manager/about/)**: listing, user reviews and comparable download managers.
+- **[ZDM on Product Hunt](https://www.producthunt.com/products/zelvior-download-manager-zdm)**: launch page and discussion.
+- **[Why your download manager matters: cross-platform downloads and legacy hardware](https://dev.to/zelvior/why-your-download-manager-matters-cross-platform-downloads-and-legacy-hardware-2cl9)** on DEV: why ZDM targets Windows, macOS and Linux, including older and 32-bit systems.
 
 ## 📚 Documentation
 

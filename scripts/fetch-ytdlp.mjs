@@ -1,5 +1,5 @@
 // Downloads yt-dlp from the official GitHub release and verifies it against the release's SHA2-256SUMS file.
-// Usage: node scripts/fetch-ytdlp.mjs <destination directory> [x64|ia32|mac|mac-legacy|linux-x64|linux-arm64|linux-ia32]
+// Usage: node scripts/fetch-ytdlp.mjs <destination directory> [x64|ia32|mac|linux-x64|linux-arm64|linux-ia32]
 // Windows targets are saved as yt-dlp.exe, macOS and Linux targets as an executable file named yt-dlp.
 // The packaged app uses it to find the video on any supported web page (see core/extract.mjs).
 import { createHash } from 'node:crypto';
@@ -18,7 +18,10 @@ async function get(url) {
 }
 const sums = (await get(`${base}/SHA2-256SUMS`)).toString('utf8');
 const expected = sums.split(/\r?\n/).map(l => l.trim().split(/\s+\*?/)).find(([, name]) => name === asset)?.[0];
-if (!expected || !/^[0-9a-f]{64}$/i.test(expected)) throw new Error(`No checksum for ${asset} in release ${version}.`);
+if (!expected || !/^[0-9a-f]{64}$/i.test(expected)) {
+  const published = sums.split(/\r?\n/).map(l => l.trim().split(/\s+\*?/)[1]).filter(Boolean).join(', ');
+  throw new Error(`No checksum for ${asset} in release ${version}. That release publishes: ${published}`);
+}
 const data = await get(`${base}/${asset}`);
 const actual = createHash('sha256').update(data).digest('hex');
 if (actual !== expected.toLowerCase()) throw new Error(`Checksum mismatch for ${asset}: expected ${expected}, got ${actual}.`);

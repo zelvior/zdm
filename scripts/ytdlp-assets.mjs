@@ -5,8 +5,10 @@ const TARGETS = {
   'win-x64': { asset: 'yt-dlp.exe', windows: true },
   'ia32': { asset: 'yt-dlp_x86.exe', windows: true },
   'win-ia32': { asset: 'yt-dlp_x86.exe', windows: true },
-  'mac': { asset: 'yt-dlp_macos' }, // universal2 (Intel + Apple Silicon)
-  'mac-legacy': { asset: 'yt-dlp_macos_legacy' }, // Intel build for older macOS
+  // Universal (Intel + Apple Silicon), macOS 10.15 or newer. yt-dlp no longer publishes a build for older macOS (the standalone
+  // "legacy" file was discontinued), so the legacy macOS app bundles this one too; on macOS 10.13 / 10.14 it cannot start and
+  // page-video extraction is unavailable there, while direct downloads, HLS and DASH still work.
+  'mac': { asset: 'yt-dlp_macos' },
   'linux-x64': { asset: 'yt-dlp_linux' },
   'linux-arm64': { asset: 'yt-dlp_linux_aarch64' },
   // There is no standalone 32-bit Linux binary: the portable zipapp is used, which needs Python 3 on the machine.

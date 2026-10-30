@@ -48,3 +48,12 @@ macOS builds are ad-hoc signed only. Notarization needs an Apple Developer ID (`
 `APPLE_APP_SPECIFIC_PASSWORD`, `APPLE_TEAM_ID`) and removing `identity: null` in `electron-builder.unix.cjs`; it is not set up.
 
 Code signing and browser-store publication are not configured; do not advertise them.
+
+## Known platform issue: ffmpeg on Linux and MPEG-TS
+
+The ffmpeg that `ffmpeg-static` ships for Linux is a fully static glibc build. It crashes with SIGSEGV when it reads an MPEG-TS file that
+contains DVB service tables (SDT/EIT), which almost every HLS segment does (FFmpeg ticket #10439). Windows and macOS builds are not
+affected. ZDM therefore removes those tables from TS tracks before it hands them to ffmpeg (`core/ts-strip.mjs`, used by
+`core/mux.mjs`). `scripts/ffmpeg-probe.mjs` runs the failing command with and without that clean-up and prints both results in the CI log.
+What this does **not** cover: yt-dlp runs ffmpeg itself when it merges or remuxes a download, so a TS-based stream merged by yt-dlp can
+still hit the crash on Linux. If that is reported, replace the Linux ffmpeg binary with a dynamically linked build.

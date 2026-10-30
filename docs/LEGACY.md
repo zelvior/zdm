@@ -55,7 +55,7 @@ Run these on the matching operating system. Fetch yt-dlp into the repository's `
 cd legacy
 npm_config_arch=x64 npm install                 # macOS and 64-bit Linux
 npm run stage && npm run verify
-npm run dist:mac                                # fetch target: mac-legacy   -> release/ZDM-legacy-mac-x64.dmg/.zip
+npm run dist:mac                                # fetch target: mac          -> release/ZDM-legacy-mac-x64.dmg/.zip
 npm run dist:linux:x64                          # fetch target: linux-x64    -> release/ZDM-legacy-linux-*.AppImage/.deb
 ```
 
@@ -81,8 +81,10 @@ The legacy build ships `manifest.legacy.json` (installed as `manifest.json`). Ch
 
 - CI cannot run Windows 7, old macOS or 32-bit Linux. Test on a Windows 7 SP1 machine, a Mac on macOS 10.13 to 11, and a 32-bit Linux VM.
 - macOS builds are only ad-hoc signed, not notarized. Users approve the first start (see INSTALL.md).
-- `yt-dlp_macos_legacy` may be missing from a yt-dlp release. The workflow then builds without it and page-video extraction is unavailable
-  on that build until a release that has it is chosen with the `YTDLP_VERSION` variable.
+- yt-dlp no longer publishes a build for macOS older than 10.15 (the last yt-dlp version that supported macOS 10.14 and earlier was
+  2025.08.11). The legacy macOS app bundles the standard `yt-dlp_macos`, so **page-video extraction works on macOS 10.15 to 11 and is
+  unavailable on macOS 10.13 and 10.14**. Direct downloads, HLS and DASH work everywhere the app runs. Pinning `YTDLP_VERSION=2025.08.11`
+  would give 10.13/10.14 an extractor, but one that is over a year old and no longer matches current sites.
 - Browser integration builds its native launcher with the .NET Framework `csc.exe`. If none exists, ZDM falls back to a `.cmd` launcher and
   shows the reason if that fails too.
 - The bundled FFmpeg must run on the target OS. If it does not run on Windows 7, replace `ffmpeg.exe` with a Windows-7-compatible static build.
