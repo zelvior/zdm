@@ -1,6 +1,6 @@
 # Start here
 
-ZDM is a Windows download manager by Zelvior. This page is the map of the code.
+ZDM is a download manager for Windows, macOS and Linux by Zelvior. This page is the map of the code.
 
 ## How a download flows
 

@@ -43,3 +43,16 @@ npm test            # tests/branding.test.mjs checks sizes, ICO frames and the m
 Below 96 px the "Z" mark is used (the full wordmark is unreadable that small), from 96 px up the full logo with its tagline.
 If you replace `zdm-logo.jpg` with different artwork, adjust the coordinates at the top of the script (the letter box and the cut line
 between Z and D).
+
+## Updating the README images
+
+`docs/media/` holds the screenshots and GIFs. They are generated, not hand-made, so they can be refreshed after a UI change:
+
+```sh
+pip install pillow numpy playwright && python -m playwright install chromium
+python scripts/capture-readme-media.py   # real renderer/ UI with sample downloads -> screenshots + demo.gif
+python scripts/generate-readme-art.py    # banner, social preview and the how-it-works diagram
+```
+
+The capture script serves `renderer/` locally and replaces only the desktop bridge with sample data, so what you see is the real
+interface. Set `docs/branding/social-preview.png` as the repository's social preview image in *Settings > General*.
