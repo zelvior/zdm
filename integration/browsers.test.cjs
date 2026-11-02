@@ -126,8 +126,10 @@ test('a browser that is not on the list can be added by its folder, remembered, 
 
 test('custom locations are validated: absolute folders on macOS/Linux, a short vendor key under HKCU\\Software on Windows', () => {
   const n = registration.normalizeCustomLocation;
-  assert.equal(n('/home/a/.config/foo', 'linux'), '/home/a/.config/foo/NativeMessagingHosts');
-  assert.equal(n('/home/a/.config/foo/NativeMessagingHosts', 'darwin'), '/home/a/.config/foo/NativeMessagingHosts');
+  // Folders are normalized with the host's own path rules (on Windows '/' becomes '\\'), so the expected values are built the same way.
+  assert.equal(n('/home/a/.config/foo', 'linux'), path.join('/home/a/.config/foo', 'NativeMessagingHosts'));
+  assert.equal(n('/home/a/.config/foo/NativeMessagingHosts', 'darwin'), path.normalize('/home/a/.config/foo/NativeMessagingHosts'));
+  assert.equal(n(`/home/a/.config/foo${path.sep}`, 'linux'), path.join('/home/a/.config/foo', 'NativeMessagingHosts'), 'a trailing separator makes no difference');
   assert.throws(() => n('relative/path', 'linux'), /full path/);
   assert.throws(() => n('', 'linux'), /full path/);
   assert.equal(n('Vivaldi', 'win32'), 'Vivaldi');
