@@ -66,7 +66,7 @@
 
 > [!NOTE]
 > The installers and apps are **not code-signed**, so Windows SmartScreen and macOS Gatekeeper warn the first time. Verify the SHA-256
-> file on the release page before running. Closing the window keeps ZDM in the system tray (switchable in Options).
+> file on the release page before running. Closing the window keeps ZDM in the system tray (switchable in Settings).
 
 Step-by-step instructions for every system, including connecting the browser extension: **[docs/INSTALL.md](docs/INSTALL.md)**.
 What the *legacy* builds can and cannot cover: **[docs/LEGACY.md](docs/LEGACY.md)**.
@@ -82,7 +82,7 @@ What the *legacy* builds can and cannot cover: **[docs/LEGACY.md](docs/LEGACY.md
 | **Integrity** | SHA-256 and MD5 are computed in a worker thread while downloading. Enter a checksum and a mismatch discards the file |
 | **Any file** | Every file type, categorised (Video, Audio, Images, Archives, Documents, Programs, Other). Missing extensions are filled in from Content-Type |
 | **Any video page** | `yt-dlp` and `ffmpeg` find and merge the best streams: choose quality (up to 4K, 1080p, 720p, 480p, audio only) and container (MP4, MKV, WebM, MP3, M4A, FLAC, WAV). HLS and DASH (`.mpd`) manifests are supported |
-| **Browser takeover** | The Chrome / Edge / Firefox extension sends every browser download to ZDM. If ZDM is not running, the browser keeps the download |
+| **Browser takeover** | The browser extension (Chrome, Edge, Brave, Vivaldi, Opera, Firefox and more) sends every browser download to ZDM. If ZDM is not running, the browser keeps the download |
 | **Clipboard links** | Copy a download or video link and ZDM offers to add it |
 | **Queue and schedule** | Queue downloads, start them later, set a speed limit, a connection count and a memory budget |
 | **Live indicators** | Download details show the protocol (HTTP/2 or HTTP/1.1), range blocks, multiplexing, connections in use, throttling, hashing and checksum status |
@@ -115,18 +115,34 @@ These are ZDM's real interface with sample downloads.
 
 <table>
   <tr>
-    <td align="center" width="50%"><img src="docs/media/screenshot-add.png" alt="The Add URL dialog with the Advanced section open: web page video, mirrors and a checksum"></td>
+    <td align="center" width="50%"><img src="docs/media/screenshot-add.png" alt="The New download dialog with More options open: web page video, mirrors and a checksum"></td>
     <td align="center" width="50%"><img src="docs/media/screenshot-details.png" alt="The details window: HTTP/2, range blocks, 32 of 32 connections, per-connection progress and a mirror table"></td>
   </tr>
   <tr>
-    <td align="center"><sub><b>Add URL</b>: batch links, mirrors, a checksum, or a web page to extract its video</sub></td>
+    <td align="center"><sub><b>New download</b>: batch links, mirrors, a checksum, or a web page to extract its video</sub></td>
     <td align="center"><sub><b>Details</b>: protocol, connections, per-connection progress and mirrors</sub></td>
   </tr>
 </table>
 
+<p align="center">
+  <img src="docs/media/screenshot-browsers.png" alt="The Browser connection screen: Chrome, Brave, Supermium and Firefox connected, with a custom browser added" width="460">
+  <br><sub><b>Browser connection</b>: every browser ZDM found and whether it can reach the app</sub>
+</p>
+
 ## 🌐 Browser integration
 
-The extension for **Chrome, Edge and Firefox** hands your browser's downloads to ZDM and adds a *Download this page's video* button.
+The extension hands your browser's downloads to ZDM and adds a *Download this page's video* button. It pairs with **every major browser**,
+automatically, as soon as ZDM finds it:
+
+| Family | Browsers |
+|---|---|
+| **Chromium-based** | Chrome, Edge, Brave, Vivaldi, Chromium, Opera, Supermium, Thorium, Yandex Browser, Arc (macOS) |
+| **Firefox-based** | Firefox, Waterfox (Linux and Windows) |
+| **Anything else** | Add it under *Browser connection > My browser is not listed* by giving the folder (macOS, Linux) or registry key (Windows) it reads connections from |
+
+Chrome, Edge, Chromium, Brave, Vivaldi, Firefox and Arc follow documented locations. For Opera, Supermium, Thorium, Yandex Browser and
+Waterfox the location is expected from their lineage rather than confirmed, and the app says so ("expected to work"); if one does not
+connect, the custom option above fixes it in a minute.
 
 - Every `http(s)` download is taken over by default, and the browser's own copy is cancelled only after ZDM accepts it.
 - If ZDM is not running, or refuses the download, **the browser keeps it**.
@@ -135,11 +151,13 @@ The extension for **Chrome, Edge and Firefox** hands your browser's downloads to
 
 Setup takes a minute: **[docs/INSTALL.md](docs/INSTALL.md#connect-your-browser)**.
 
+Not connecting? Run the built-in connection check: **[docs/INSTALL.md](docs/INSTALL.md#the-extension-does-not-connect)**. It tests every link between the extension and the app and names the one that is broken.
+
 ## 🚀 Use it
 
-- **Add URL:** paste one or many links. Under *Advanced* you can add mirrors, a checksum, or tick *This address is a web page* to extract its video.
+- **New download:** press `Ctrl` `N` and paste one or many links. Under *More options* you can add mirrors, a checksum, or tick *This address is a web page* to extract its video.
 - **From the browser:** click a download link, or use the extension's *Download this page's video* button.
-- **Pause, resume, queue, schedule:** from the toolbar. Speed limit, connection count, memory budget and the rest are in **Options**.
+- **Pause, resume, remove:** from the bar that appears when you select a download (drag over cards to select several), or *Pause all / Resume all* in the summary. Speed limit, connection count, memory budget and the rest are in **Settings**.
 
 ## 🔒 Privacy and safety
 
@@ -190,8 +208,8 @@ The 32-bit and older-system track lives in [`legacy/`](legacy/). Release steps: 
 | `core/` | Download engine: scheduler, block buffers, write queue, HTTP/1.1 + HTTP/2 transport, DNS cache, hashing, HLS, yt-dlp / ffmpeg extraction |
 | `desktop/` | Electron main process, tray, About window, clipboard monitor, browser registration |
 | `renderer/` | The user interface |
-| `extension/` | Browser extension (Chrome, Edge, Firefox) |
-| `integration/` | Native messaging host that links the extension to the app |
+| `extension/` | Browser extension (Chromium-based browsers and Firefox) |
+| `integration/` | Native messaging host that links the extension to the app, the list of supported browsers (`browsers.json`) and the connection check (`doctor.cjs`) |
 | `legacy/` | Build track for older systems and 32-bit (Windows 7/8, older macOS, older and 32-bit Linux) |
 | `scripts/` | Build helpers (yt-dlp download, icon and README image generators) |
 | `tests/` | Engine tests (extension and integration tests sit beside their code) |

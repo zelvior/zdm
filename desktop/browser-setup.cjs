@@ -12,7 +12,7 @@ const start = (command, args) => new Promise((resolve, reject) => {
 async function openExtensions(browser, { platform = process.platform, env = process.env, launch = start } = {}) {
   const { pages, candidates } = browserLaunchers({ platform, env });
   const url = pages[browser];
-  if (!url) throw new Error('Choose Chrome or Edge.');
+  if (!url) throw new Error(`Open the extensions page of ${browser || 'your browser'} yourself and load the folder shown by ZDM.`);
   for (const candidate of candidates[browser] || []) {
     if (candidate.file) { try { await fs.access(candidate.command); } catch { continue; } }
     try { await launch(candidate.command, [...candidate.args, url]); return; }

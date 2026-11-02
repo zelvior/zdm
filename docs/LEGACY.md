@@ -80,6 +80,8 @@ The legacy build ships `manifest.legacy.json` (installed as `manifest.json`). Ch
 ## Known limits (verify on real machines)
 
 - CI cannot run Windows 7, old macOS or 32-bit Linux. Test on a Windows 7 SP1 machine, a Mac on macOS 10.13 to 11, and a 32-bit Linux VM.
+- The interface uses the same layout everywhere, but the older Chromium in the legacy builds (98 and 108) ignores CSS `color-mix()`, so a few
+  soft tints (for example the green behind "Finished") fall back to neutral gray. Nothing is hidden or unusable.
 - macOS builds are only ad-hoc signed, not notarized. Users approve the first start (see INSTALL.md).
 - yt-dlp no longer publishes a build for macOS older than 10.15 (the last yt-dlp version that supported macOS 10.14 and earlier was
   2025.08.11). The legacy macOS app bundles the standard `yt-dlp_macos`, so **page-video extraction works on macOS 10.15 to 11 and is

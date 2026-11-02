@@ -64,7 +64,9 @@
           "native-host.cjs",
           "NativeHostLauncher.cs",
           "README.md",
-          "register-native-host.ps1"
+          "register-native-host.ps1",
+          "doctor.cjs",
+          "browsers.json"
         ]
       }
     ],

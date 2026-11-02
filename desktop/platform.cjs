@@ -5,37 +5,50 @@ const os = require('node:os');
 const path = require('node:path');
 
 const HOST = 'com.zelvior.zdm.host';
-const BROWSERS = ['Chrome', 'Edge', 'Firefox'];
+// Every supported browser lives in integration/browsers.json (shared with the connection check).
+const CATALOG = require('../integration/browsers.json').browsers;
+const BROWSERS = CATALOG.map(browser => browser.name);
 const isWindows = platform => platform === 'win32';
 
-// profileRoot: where the browser keeps its profiles (used to detect it and to find its extensions).
-// nativeMessagingDir: macOS/Linux only. The browser reads native messaging manifests from this folder; Windows uses the registry instead.
-// registryRoot: Windows only.
-function browserLocations({ platform = process.platform, env = process.env, home = os.homedir() } = {}) {
-  if (platform === 'win32') {
-    const local = env.LOCALAPPDATA, roaming = env.APPDATA;
-    const at = (base, ...parts) => (base ? path.join(base, ...parts) : null);
+// Turns a path token from browsers.json into a real path. Returns null when a Windows variable is not set.
+function resolvePath(token, { platform = process.platform, env = process.env, home = os.homedir() } = {}) {
+  if (!token) return null;
+  const [head, ...rest] = token.split('/');
+  if (head === '%LOCALAPPDATA%' || head === '%APPDATA%') { const base = env[head.slice(1, -1)]; return base ? path.join(base, ...rest) : null; }
+  if (head === '~support') return path.join(home, 'Library', 'Application Support', ...rest);
+  if (head === '~config') return path.join(env.XDG_CONFIG_HOME && path.isAbsolute(env.XDG_CONFIG_HOME) ? env.XDG_CONFIG_HOME : path.join(home, '.config'), ...rest);
+  if (head === '~') return path.join(home, ...rest);
+  return path.join(token);
+}
+
+// One entry per browser available on this platform.
+//   profileRoot:        the browser's data folder (to detect it and to find its extensions)
+//   nativeMessagingDir: macOS/Linux, where the browser reads native messaging manifests (Chromium: <data folder>/NativeMessagingHosts)
+//   registryRoot:       Windows, the vendor key under HKCU\Software that the browser reads; registryFrom: the browser whose key it follows
+function browserCatalog({ platform = process.platform, env = process.env, home = os.homedir() } = {}) {
+  const key = isWindows(platform) ? 'win32' : platform === 'darwin' ? 'darwin' : 'linux';
+  return CATALOG.filter(browser => browser[key]).map(browser => {
+    const where = browser[key], profileRoot = resolvePath(where.profile, { platform, env, home });
     return {
-      Chrome: { profileRoot: at(local, 'Google', 'Chrome', 'User Data'), registryRoot: 'Google\\Chrome' },
-      Edge: { profileRoot: at(local, 'Microsoft', 'Edge', 'User Data'), registryRoot: 'Microsoft\\Edge' },
-      Firefox: { profileRoot: at(roaming, 'Mozilla', 'Firefox'), registryRoot: 'Mozilla' }
+      name: browser.name, family: browser.family, verified: browser.verified !== false, profileRoot,
+      nativeMessagingDir: isWindows(platform) ? null : (where.nativeMessaging ? resolvePath(where.nativeMessaging, { platform, env, home }) : path.join(profileRoot, 'NativeMessagingHosts')),
+      registryRoot: isWindows(platform) ? where.registry || null : null,
+      registryFrom: isWindows(platform) ? where.registryFrom || null : null,
+      alwaysRegister: (browser.alwaysRegister || []).includes(key)
     };
-  }
-  if (platform === 'darwin') {
-    const support = path.join(home, 'Library', 'Application Support');
-    return {
-      Chrome: { profileRoot: path.join(support, 'Google', 'Chrome'), nativeMessagingDir: path.join(support, 'Google', 'Chrome', 'NativeMessagingHosts') },
-      Edge: { profileRoot: path.join(support, 'Microsoft Edge'), nativeMessagingDir: path.join(support, 'Microsoft Edge', 'NativeMessagingHosts') },
-      Firefox: { profileRoot: path.join(support, 'Firefox'), nativeMessagingDir: path.join(support, 'Mozilla', 'NativeMessagingHosts') }
-    };
-  }
-  // Linux and other Unix-likes follow the XDG layout.
-  const config = env.XDG_CONFIG_HOME && path.isAbsolute(env.XDG_CONFIG_HOME) ? env.XDG_CONFIG_HOME : path.join(home, '.config');
-  return {
-    Chrome: { profileRoot: path.join(config, 'google-chrome'), nativeMessagingDir: path.join(config, 'google-chrome', 'NativeMessagingHosts') },
-    Edge: { profileRoot: path.join(config, 'microsoft-edge'), nativeMessagingDir: path.join(config, 'microsoft-edge', 'NativeMessagingHosts') },
-    Firefox: { profileRoot: path.join(home, '.mozilla', 'firefox'), nativeMessagingDir: path.join(home, '.mozilla', 'native-messaging-hosts') }
-  };
+  });
+}
+
+// The same data keyed by browser name (the shape the rest of the app uses).
+function browserLocations(options = {}) {
+  return Object.fromEntries(browserCatalog(options).map(browser => [browser.name, browser]));
+}
+
+// The browser whose registration serves `name`: itself, or (Windows) the browser whose registry key it follows.
+function registrationTarget(name, options = {}) {
+  const entry = browserLocations(options)[name];
+  if (!entry) return null;
+  return isWindows(options.platform || process.platform) ? (entry.registryRoot ? name : entry.registryFrom) : name;
 }
 
 // The program the browser starts. Windows prefers the compiled launcher and falls back to the .cmd file.
@@ -55,16 +68,20 @@ function runtimeExecutable({ platform = process.platform, env = process.env, exe
 }
 
 // Commands that open a browser's extensions page; the first one that starts wins.
+const EXTENSIONS_SCHEME = { Edge: 'edge', Brave: 'brave', Vivaldi: 'vivaldi', Opera: 'opera' };
+const MAC_APP = { Chrome: 'Google Chrome', Edge: 'Microsoft Edge', Chromium: 'Chromium', Brave: 'Brave Browser', Vivaldi: 'Vivaldi', Opera: 'Opera', Arc: 'Arc', Thorium: 'Thorium', 'Yandex Browser': 'Yandex' };
+const LINUX_COMMANDS = { Chrome: ['google-chrome-stable', 'google-chrome'], Edge: ['microsoft-edge-stable', 'microsoft-edge'], Chromium: ['chromium', 'chromium-browser'], Brave: ['brave-browser', 'brave'], Vivaldi: ['vivaldi-stable', 'vivaldi'], Opera: ['opera'], Thorium: ['thorium-browser'], 'Yandex Browser': ['yandex-browser'] };
+const WINDOWS_EXE = { Chrome: 'Google/Chrome/Application/chrome.exe', Edge: 'Microsoft/Edge/Application/msedge.exe', Chromium: 'Chromium/Application/chrome.exe', Brave: 'BraveSoftware/Brave-Browser/Application/brave.exe', Vivaldi: 'Vivaldi/Application/vivaldi.exe', Opera: 'Programs/Opera/opera.exe', Supermium: 'Supermium/Application/chrome.exe', Thorium: 'Thorium/Application/thorium.exe', 'Yandex Browser': 'Yandex/YandexBrowser/Application/browser.exe' };
 function browserLaunchers({ platform = process.platform, env = process.env } = {}) {
-  const pages = { Chrome: 'chrome://extensions/', Edge: 'edge://extensions/' };
-  if (platform === 'darwin') return { pages, candidates: { Chrome: [{ command: 'open', args: ['-a', 'Google Chrome', '--args'] }], Edge: [{ command: 'open', args: ['-a', 'Microsoft Edge', '--args'] }] } };
-  if (platform === 'linux') return { pages, candidates: {
-    Chrome: ['google-chrome-stable', 'google-chrome'].map(command => ({ command, args: [] })),
-    Edge: ['microsoft-edge-stable', 'microsoft-edge'].map(command => ({ command, args: [] }))
-  } };
-  const relative = { Chrome: path.join('Google', 'Chrome', 'Application', 'chrome.exe'), Edge: path.join('Microsoft', 'Edge', 'Application', 'msedge.exe') };
-  const roots = [env.LOCALAPPDATA, env.ProgramFiles, env['ProgramFiles(x86)']].filter(Boolean);
-  return { pages, candidates: Object.fromEntries(Object.entries(relative).map(([browser, file]) => [browser, roots.map(root => ({ command: path.join(root, file), args: [], file: true }))])) };
+  const chromium = CATALOG.filter(browser => browser.family === 'chromium').map(browser => browser.name);
+  const pages = Object.fromEntries(chromium.map(name => [name, `${EXTENSIONS_SCHEME[name] || 'chrome'}://extensions/`]));
+  const candidates = {};
+  for (const name of chromium) {
+    if (platform === 'darwin') candidates[name] = MAC_APP[name] ? [{ command: 'open', args: ['-a', MAC_APP[name], '--args'] }] : [];
+    else if (platform === 'linux') candidates[name] = (LINUX_COMMANDS[name] || []).map(command => ({ command, args: [] }));
+    else candidates[name] = WINDOWS_EXE[name] ? [env.LOCALAPPDATA, env.ProgramFiles, env['ProgramFiles(x86)']].filter(Boolean).map(root => ({ command: path.join(root, ...WINDOWS_EXE[name].split('/')), args: [], file: true })) : [];
+  }
+  return { pages, candidates };
 }
 
-module.exports = { HOST, BROWSERS, isWindows, browserLocations, hostCandidates, launcherName, launcherScript, shellQuote, runtimeExecutable, browserLaunchers };
+module.exports = { HOST, BROWSERS, CATALOG, isWindows, resolvePath, browserCatalog, registrationTarget, browserLocations, hostCandidates, launcherName, launcherScript, shellQuote, runtimeExecutable, browserLaunchers };

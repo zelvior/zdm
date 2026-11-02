@@ -39,7 +39,7 @@ The browser connection needs a browser that is installed as a normal package: a 
 
 The extension lets ZDM take over browser downloads and adds *Download this video* buttons. It ships with the app.
 
-1. In ZDM open **Browser Integration** and click **Copy extension folder path** (normally `C:\Users\YOU\.zdm\BrowserIntegration\extension`
+1. In ZDM open **Browser connection** (sidebar) and click **Copy path** (normally `C:\Users\YOU\.zdm\BrowserIntegration\extension`
    on Windows, `~/.zdm/BrowserIntegration/extension` on macOS and Linux).
 2. Open `chrome://extensions` (Chrome) or `edge://extensions` (Edge) and switch on **Developer mode**.
 3. Click **Load unpacked**, press **Ctrl+L** in the folder window (macOS: **Command+Shift+G**), paste the path, press **Enter**, then **Select Folder**.
@@ -48,12 +48,37 @@ The extension lets ZDM take over browser downloads and adds *Download this video
 The extension has a fixed ID, so ZDM registers the browser connection by itself when it starts and repairs it if it ever disappears.
 No extension ID or command is needed. Firefox: load `manifest.firefox.json` as a temporary add-on.
 
-**Not connected?** Keep ZDM running, open Browser Integration and click **Refresh browsers**; the dialog names the broken step
+**Not connected?** Keep ZDM running and open **Browser connection**: it lists every browser it found with its state and names the broken step
 (registry entry or connector file, manifest, connector program or extension ID). Then reload the extension and the page.
+
+### The extension does not connect
+
+ZDM includes a connection check that follows the same chain a browser does (extension ID, the browser's connection entry, the launcher,
+the connector, the running app) and tells you the first link that is broken. Run it with **ZDM closed or open** (open is better):
+
+- **Development checkout:** `npm run doctor`
+- **Windows:** in PowerShell, with the path of `ZDM.exe` (right-click the ZDM shortcut, *Open file location*):
+  `$env:ELECTRON_RUN_AS_NODE=1; & "C:\path\to\ZDM.exe" "$env:USERPROFILE\.zdm\BrowserIntegration\integration\doctor.cjs"`
+- **macOS:** `ELECTRON_RUN_AS_NODE=1 /Applications/ZDM.app/Contents/MacOS/ZDM ~/.zdm/BrowserIntegration/integration/doctor.cjs`
+- **Linux:** `ELECTRON_RUN_AS_NODE=1 /opt/ZDM/zdm ~/.zdm/BrowserIntegration/integration/doctor.cjs` (the `.deb`/`.rpm` path; for an
+  AppImage use `ELECTRON_RUN_AS_NODE=1 ./ZDM-linux-x86_64.AppImage ...` with the same last argument)
+- Any system with Node.js installed: `node ~/.zdm/BrowserIntegration/integration/doctor.cjs`
+
+Each line starts with `[ OK ]`, `[WARN]` or `[FAIL]`, and a `[FAIL]` comes with the fix. The usual causes it finds:
+
+| What it reports | Meaning |
+|---|---|
+| The extension ID is not the one shown | The extension was loaded from another folder or a copy without ZDM's key. Remove it and load the folder shown by the check |
+| *Browser X is installed but is not connected* | ZDM has not registered that browser yet. Start ZDM, wait a few seconds, reload the extension |
+| *The launcher points at a program that does not exist* | ZDM was moved or reinstalled. Start ZDM once so it rewrites the launcher |
+| *Your browser is not listed in Browser connection* | Open **Browser connection > My browser is not listed**, give the browser's data folder (macOS, Linux) or its registry key under `HKCU\Software` (Windows, for example `Vivaldi`) and ZDM registers and repairs it from then on |
+| *Opera, Supermium, Thorium, Yandex Browser or Waterfox: "expected to work"* | Their lookup location follows their parent browser but is not confirmed by their documentation. If one does not connect, add it with the option above |
+| *Runs in a sandbox* (Linux Snap or Flatpak) | A sandboxed browser cannot start the connector. Install the browser as a normal package |
+| *ZDM is not running* | Not an error: the extension can start ZDM when a download is sent, but status and controls need it open |
 
 ## Download
 
-- **A file:** *Add URL* in the app, or just click a link in the browser. The extension sends every file type to ZDM; the browser keeps
+- **A file:** *New download* in the app, or just click a link in the browser. The extension sends every file type to ZDM; the browser keeps
   the download if ZDM is not running. Exclude sites or types (`example.com, .pdf`) in the extension popup.
 - **A video from a web page:** click *Download this page's video* in the popup, use the button over the player, or tick
   *This address is a web page* in the add dialog. Choose quality and container. Works with YouTube, Vimeo, social media and

@@ -1,0 +1,72 @@
+{
+  "about": "Every browser ZDM connects to. One file, read by the app (desktop/platform.cjs) and by the connection check (integration/doctor.cjs), so they cannot disagree. 'profile' is the browser's data folder (used to detect it). Chromium-based browsers read native messaging manifests from <data folder>/NativeMessagingHosts on macOS and Linux; on Windows they read a registry key under HKCU\\Software ('registry'). A browser without its own 'registry' follows another browser's convention ('registryFrom'). Path tokens: %LOCALAPPDATA% and %APPDATA% (Windows), ~support (macOS: ~/Library/Application Support), ~config (Linux: $XDG_CONFIG_HOME or ~/.config), ~ (home). 'verified': false means the location is expected from the browser's lineage, not confirmed by its documentation.",
+  "browsers": [
+    {
+      "name": "Chrome", "family": "chromium", "verified": true, "alwaysRegister": ["win32"],
+      "win32": { "profile": "%LOCALAPPDATA%/Google/Chrome/User Data", "registry": "Google\\Chrome" },
+      "darwin": { "profile": "~support/Google/Chrome" },
+      "linux": { "profile": "~config/google-chrome" }
+    },
+    {
+      "name": "Edge", "family": "chromium", "verified": true,
+      "win32": { "profile": "%LOCALAPPDATA%/Microsoft/Edge/User Data", "registry": "Microsoft\\Edge" },
+      "darwin": { "profile": "~support/Microsoft Edge" },
+      "linux": { "profile": "~config/microsoft-edge" }
+    },
+    {
+      "name": "Chromium", "family": "chromium", "verified": true, "alwaysRegister": ["win32"],
+      "win32": { "profile": "%LOCALAPPDATA%/Chromium/User Data", "registry": "Chromium" },
+      "darwin": { "profile": "~support/Chromium" },
+      "linux": { "profile": "~config/chromium" }
+    },
+    {
+      "name": "Brave", "family": "chromium", "verified": true,
+      "win32": { "profile": "%LOCALAPPDATA%/BraveSoftware/Brave-Browser/User Data", "registry": "BraveSoftware\\Brave-Browser" },
+      "darwin": { "profile": "~support/BraveSoftware/Brave-Browser" },
+      "linux": { "profile": "~config/BraveSoftware/Brave-Browser" }
+    },
+    {
+      "name": "Vivaldi", "family": "chromium", "verified": true,
+      "win32": { "profile": "%LOCALAPPDATA%/Vivaldi/User Data", "registry": "Vivaldi" },
+      "darwin": { "profile": "~support/Vivaldi" },
+      "linux": { "profile": "~config/vivaldi" }
+    },
+    {
+      "name": "Opera", "family": "chromium", "verified": false,
+      "win32": { "profile": "%APPDATA%/Opera Software/Opera Stable", "registryFrom": "Chromium" },
+      "darwin": { "profile": "~support/com.operasoftware.Opera" },
+      "linux": { "profile": "~config/opera" }
+    },
+    {
+      "name": "Supermium", "family": "chromium", "verified": false,
+      "win32": { "profile": "%LOCALAPPDATA%/Supermium/User Data", "registryFrom": "Chromium" }
+    },
+    {
+      "name": "Thorium", "family": "chromium", "verified": false,
+      "win32": { "profile": "%LOCALAPPDATA%/Thorium/User Data", "registryFrom": "Chromium" },
+      "darwin": { "profile": "~support/Thorium" },
+      "linux": { "profile": "~config/thorium" }
+    },
+    {
+      "name": "Yandex Browser", "family": "chromium", "verified": false,
+      "win32": { "profile": "%LOCALAPPDATA%/Yandex/YandexBrowser/User Data", "registryFrom": "Chromium" },
+      "darwin": { "profile": "~support/Yandex/YandexBrowser" },
+      "linux": { "profile": "~config/yandex-browser" }
+    },
+    {
+      "name": "Arc", "family": "chromium", "verified": true,
+      "darwin": { "profile": "~support/Arc/User Data" }
+    },
+    {
+      "name": "Firefox", "family": "firefox", "verified": true,
+      "win32": { "profile": "%APPDATA%/Mozilla/Firefox", "registry": "Mozilla" },
+      "darwin": { "profile": "~support/Firefox", "nativeMessaging": "~support/Mozilla/NativeMessagingHosts" },
+      "linux": { "profile": "~/.mozilla/firefox", "nativeMessaging": "~/.mozilla/native-messaging-hosts" }
+    },
+    {
+      "name": "Waterfox", "family": "firefox", "verified": true,
+      "win32": { "profile": "%APPDATA%/Waterfox", "registryFrom": "Firefox" },
+      "linux": { "profile": "~/.waterfox", "nativeMessaging": "~/.waterfox/native-messaging-hosts" }
+    }
+  ]
+}

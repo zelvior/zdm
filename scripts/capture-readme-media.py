@@ -8,7 +8,7 @@ Only the desktop bridge (window.downloader, normally provided by the Electron pr
 the HTML, CSS and JavaScript are the application's own. Nothing here downloads anything. The pages are drawn by Chromium
 (the engine inside Electron), with Liberation Sans standing in for Segoe UI when it is not installed.
 
-Output (docs/media/): screenshot-main.png, screenshot-add.png, screenshot-details.png, demo.gif
+Output (docs/media/): screenshot-main.png, screenshot-add.png, screenshot-browsers.png, screenshot-details.png, demo.gif
 """
 import hashlib
 import http.server
@@ -27,10 +27,11 @@ ROOT = Path(__file__).resolve().parent.parent
 OUT = ROOT / 'docs' / 'media'
 OUT.mkdir(parents=True, exist_ok=True)
 MB, GB = 1024 ** 2, 1024 ** 3
-MAIN_SIZE = (1180, 600)          # window used for the GIF
-LIST_SIZE = (1180, 470)          # window used for the list screenshot
-ADD_SIZE = (1180, 690)           # tall enough for the whole Add dialog with Advanced open
-PROGRESS_SIZE = (565, 600)       # the real details ("progress") window, a little taller than its 485 px default so the mirror table fits
+MAIN_SIZE = (1180, 700)          # window used for the GIF
+LIST_SIZE = (1180, 760)          # window used for the list screenshot
+ADD_SIZE = (1180, 1040)          # tall enough for the whole New download dialog with More options open
+GIF_PROGRESS_SIZE = (565, 620)   # the details window inside the demo GIF (smaller than the demo canvas)
+PROGRESS_SIZE = (565, 760)       # the real details ("progress") window, resizable; taller than its default so the mirror table is visible
 FONT_FIX = ':root,button,input,textarea,select,dialog,table{font-family:"Segoe UI","Liberation Sans",Arial,sans-serif !important}'
 
 
@@ -85,11 +86,21 @@ def initial_downloads():
 SETTINGS = dict(defaultDirectory='C:\\Downloads', categoryDirectories={}, maxConcurrent=3, connections=32, speedLimitKbps=0,
                 notifyOnComplete=True, hideCompletionDialog=False)
 
+# What the Browser connection screen shows: browsers found on this (sample) machine and whether each can reach the app.
+INTEGRATION = dict(packaged=False, port=51234, connectionError='', connectedBrowsers=['Chrome'], extensionPath='C:\\Users\\you\\.zdm\\BrowserIntegration\\extension',
+                   firefoxExtensionPath='C:\\Users\\you\\AppData\\Roaming\\ZDM\\NativeMessaging\\firefox-extension',
+                   browsers=[dict(name='Chrome', label='Chrome', family='chromium', verified=True, custom=False, installed=True, shared=None, connected=True, problem=''),
+                             dict(name='Brave', label='Brave', family='chromium', verified=True, custom=False, installed=True, shared=None, connected=True, problem=''),
+                             dict(name='Supermium', label='Supermium', family='chromium', verified=False, custom=False, installed=True, shared='Chromium', connected=True, problem=''),
+                             dict(name='Firefox', label='Firefox', family='firefox', verified=True, custom=False, installed=True, shared=None, connected=True, problem=''),
+                             dict(name='custom-1a2b3c4d', label='My Browser', family='chromium', verified=True, custom=True, installed=False, shared=None, connected=True, problem='')])
+
 # The stand-in for the Electron preload bridge. Every method resolves with the current sample state.
 STUB = """
 (() => {
   const clone = v => JSON.parse(JSON.stringify(v));
-  const state = { downloads: %s, settings: %s, integration: { packaged: false, connectedBrowsers: ['Chrome'] } };
+  const INTEGRATION = %s;
+  const state = { downloads: %s, settings: %s, integration: INTEGRATION };
   const listeners = [];
   window.__push = next => { if (next) state.downloads = next; listeners.forEach(cb => cb(clone(state))); };
   window.__lastAdd = null;
@@ -97,7 +108,7 @@ STUB = """
   window.downloader = {
     snapshot: ok, settings: ok, action: ok, review: ok, clipboard: async () => ({}), integration: async () => clone(state.integration),
     browserSetup: ok, registerBrowser: ok, closeProgress: ok, resizeProgress: ok, about: ok, chooseDirectory: async () => '',
-    openProgress: async () => ({}),
+    openProgress: async id => { (window.__opened = window.__opened || []).push(id); return {}; },
     add: async request => { window.__lastAdd = request; return ['d10']; },
     subscribe: cb => { listeners.push(cb); return () => {}; },
     onCommand: () => () => {}
@@ -121,7 +132,7 @@ def serve():
 def new_page(browser, base, size, query='', scale=1, downloads=None):
     context = browser.new_context(viewport=dict(width=size[0], height=size[1]), device_scale_factor=scale, locale='en-US', timezone_id='UTC', bypass_csp=True)  # bypass_csp: only so the font stand-in below can be injected
     page = context.new_page()
-    page.add_init_script(STUB % (json.dumps(downloads or initial_downloads()), json.dumps(SETTINGS)))
+    page.add_init_script(STUB % (json.dumps(INTEGRATION), json.dumps(downloads or initial_downloads()), json.dumps(SETTINGS)))
     page.goto(f'{base}/renderer/index.html{query}')
     page.add_style_tag(content=FONT_FIX)
     page.wait_for_selector('#details-dialog[open]' if query else '.download-row')
@@ -187,8 +198,16 @@ def main():
         frame_of(Image.open(io.BytesIO(page.locator('#add-dialog').screenshot())).convert('RGB')).save(OUT / 'screenshot-add.png', optimize=True)
         page.context.close()
 
+        page = new_page(browser, base, (1180, 1320), scale=2)
+        page.click('#integration-button')
+        page.wait_for_selector('#integration-dialog[open]')
+        page.wait_for_timeout(250)
+        frame_of(Image.open(io.BytesIO(page.locator('#integration-dialog').screenshot())).convert('RGB')).save(OUT / 'screenshot-browsers.png', optimize=True)
+        page.context.close()
+
         details = new_page(browser, base, PROGRESS_SIZE, query='?progress=d1', scale=2)
         details.wait_for_timeout(200)
+        details.evaluate('document.activeElement && document.activeElement.blur()')
         frame_of(shot(details)).save(OUT / 'screenshot-details.png', optimize=True)
         details.context.close()
 
@@ -225,9 +244,9 @@ def main():
 
         # the details window of the new download opens (it is its own window in the real app)
         scene_state = progressed(base_state, step)  # continue exactly where the list left off
-        details = new_page(browser, base, PROGRESS_SIZE, query='?progress=d10', downloads=scene_state)
+        details = new_page(browser, base, GIF_PROGRESS_SIZE, query='?progress=d10', downloads=scene_state)
         dim = Image.eval(main_after_add, lambda v: int(v * 0.45))
-        px, py = (MAIN_SIZE[0] - PROGRESS_SIZE[0]) // 2, (MAIN_SIZE[1] - PROGRESS_SIZE[1]) // 2
+        px, py = (MAIN_SIZE[0] - GIF_PROGRESS_SIZE[0]) // 2, (MAIN_SIZE[1] - GIF_PROGRESS_SIZE[1]) // 2
         for i in range(16):
             step += 1
             scene_state = progressed(scene_state, 1)
@@ -250,7 +269,7 @@ def main():
     palette = [f.quantize(colors=96, method=Image.MEDIANCUT, dither=Image.Dither.NONE) for f in small]
     durations[-1] = 1800
     palette[0].save(OUT / 'demo.gif', save_all=True, append_images=palette[1:], duration=durations, loop=0, optimize=True, disposal=1)
-    for name in ('screenshot-main.png', 'screenshot-add.png', 'screenshot-details.png', 'demo.gif'):
+    for name in ('screenshot-main.png', 'screenshot-add.png', 'screenshot-browsers.png', 'screenshot-details.png', 'demo.gif'):
         print(f'{name:26s} {(OUT / name).stat().st_size // 1024:5d} KB')
 
 

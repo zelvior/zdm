@@ -84,7 +84,7 @@ test('linux: Firefox gets allowed_extensions in its own folder, and a changed ma
   await registration.registerBrowser({ browser: 'Firefox', extensionId: 'other@example' }, opts);
   const backups = (await fs.readdir(path.join(o.dataDirectory, 'NativeMessaging'))).filter(name => name.endsWith('.bak'));
   assert.equal(backups.length, 1);
-  await assert.rejects(registration.registerBrowser({ browser: 'Opera', extensionId: ID }, opts), /Chrome, Edge, or Firefox/);
+  await assert.rejects(registration.registerBrowser({ browser: 'Netscape', extensionId: ID }, opts), /Choose a browser from the list/);
   await assert.rejects(registration.registerBrowser({ browser: 'Chrome', extensionId: 'not-an-id' }, opts), /extension ID/);
 });
 
@@ -147,7 +147,11 @@ test('opening the browser extensions page uses the right command per platform', 
   assert.deepEqual(calls.at(-1), ['google-chrome', 'chrome://extensions/']);
   await openExtensions('Edge', { platform: 'darwin', launch });
   assert.deepEqual(calls.at(-1), ['open', '-a', 'Microsoft Edge', '--args', 'edge://extensions/']);
-  await assert.rejects(openExtensions('Firefox', { platform: 'linux', launch }), /Chrome or Edge/);
+  await assert.rejects(openExtensions('Firefox', { platform: 'linux', launch }), /Open the extensions page of Firefox yourself/);
+  await openExtensions('Brave', { platform: 'linux', launch });
+  assert.deepEqual(calls.at(-1), ['brave-browser', 'brave://extensions/']);
+  await openExtensions('Vivaldi', { platform: 'darwin', launch });
+  assert.deepEqual(calls.at(-1), ['open', '-a', 'Vivaldi', '--args', 'vivaldi://extensions/']);
   await assert.rejects(openExtensions('Edge', { platform: 'linux', launch: async () => { throw Object.assign(new Error('x'), { code: 'ENOENT' }); } }), /was not found/);
   await assert.rejects(openExtensions('Chrome', { platform: 'linux', launch: async () => { throw Object.assign(new Error('denied'), { code: 'EACCES' }); } }), /denied/);
 });

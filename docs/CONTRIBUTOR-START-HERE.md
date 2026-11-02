@@ -4,7 +4,7 @@ ZDM is a download manager for Windows, macOS and Linux by Zelvior. This page is 
 
 ## How a download flows
 
-1. **Entry points:** the Add URL dialog (`renderer/`), the clipboard monitor (`desktop/clipboard-links.cjs`), or the browser extension
+1. **Entry points:** the New download dialog (`renderer/`), the clipboard monitor (`desktop/clipboard-links.cjs`), or the browser extension
    (`extension/`) through the native host (`integration/native-host.cjs`) and the authenticated local bridge (`core/bridge.mjs`).
 2. **`core/engine.mjs`** probes the URL (`core/http.mjs`) and picks a path:
    - range-capable file of 4 MB or more: block download, `core/scheduler.mjs` + `core/chunk.mjs` + `core/write-queue.mjs`, hashed by `core/hasher.mjs`;

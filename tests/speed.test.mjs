@@ -32,6 +32,16 @@ async function engineFor(t, extra = {}) {
   t.after(async () => { await engine.close(); await fs.rm(root, { recursive: true, force: true }); });
   return { engine, root };
 }
+// The engine publishes and saves 'complete' first and deletes the temporary parts folder right after (so a crash can never lose a
+// finished download); it emits its 'complete' event after the deletion. Wait for that deletion, then still assert the end state.
+async function removed(file, timeout = 5000) {
+  const end = Date.now() + timeout;
+  for (;;) {
+    try { await fs.stat(file); } catch (error) { if (error.code === 'ENOENT') return; throw error; }
+    if (Date.now() > end) return;
+    await delay(10);
+  }
+}
 async function run(engine, url) {
   await engine.add({ url }); const d = engine.downloads.at(-1);
   await until(() => ['complete', 'error'].includes(d.status));
@@ -47,7 +57,9 @@ for (const workerThreads of [true, false]) {
     const d = await run(engine, `http://127.0.0.1:${server.address().port}/big.bin`);
     assert.equal(d.layout, 'direct'); assert.equal(d.segments.length, 16);
     assert.equal(digest(await fs.readFile(d.path)), digest(data));
-    await assert.rejects(fs.stat(path.join(root, 's', 'parts', d.id)), { code: 'ENOENT' });
+    const parts = path.join(root, 's', 'parts', d.id);
+    await removed(parts);
+    await assert.rejects(fs.stat(parts), { code: 'ENOENT' });
   });
 }
 

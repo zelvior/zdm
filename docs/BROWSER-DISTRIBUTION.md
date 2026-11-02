@@ -3,7 +3,7 @@
 ## Today
 
 The extension is loaded unpacked from the folder ZDM installs (`~/.zdm/BrowserIntegration/extension`). It carries a fixed manifest
-`key`, so its ID is always `lhgcpodkgbalmogcjhdmmphkpijmpefm`; ZDM registers its native messaging host for that ID in Chrome and Edge on
+`key`, so its ID is always `lhgcpodkgbalmogcjhdmmphkpijmpefm`; ZDM registers its native messaging host for that ID in every supported browser (Chrome, Edge, Brave, Vivaldi, Chromium, Opera, Supermium and more; see `integration/browsers.json`) on
 every start (Firefox uses the add-on ID `zdm@zelvior.local`). Nothing has to be copied or typed by the user.
 
 Chrome cannot silently enable an unpacked extension, so the user still loads it once with **Load unpacked**.

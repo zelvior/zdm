@@ -19,7 +19,7 @@ config.extraResources = [
   { from: 'vendor', to: 'tools', filter: ['yt-dlp', '*.txt'] },
   { from: 'extension', to: 'browser/extension', filter: ['**/*', '!*.test.cjs'] },
   // The browser launcher (native-host.sh) is generated at runtime; only the connector script is shipped.
-  { from: 'integration', to: 'browser/integration', filter: ['native-host.cjs', 'README.md'] }
+  { from: 'integration', to: 'browser/integration', filter: ['native-host.cjs', 'doctor.cjs', 'browsers.json', 'README.md'] }
 ];
 config.asarUnpack = ['core/**/*', 'node_modules/ffmpeg-static/ffmpeg'];
 config.files = [...config.files, '!integration/*.cs'];

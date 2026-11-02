@@ -21,7 +21,8 @@
     "dist": "electron-builder --win nsis --x64 --publish never",
     "dist:portable": "electron-builder --win portable --x64 --publish never",
     "dist:mac": "electron-builder --config electron-builder.unix.cjs --mac --publish never",
-    "dist:linux": "electron-builder --config electron-builder.unix.cjs --linux --publish never"
+    "dist:linux": "electron-builder --config electron-builder.unix.cjs --linux --publish never",
+    "doctor": "node integration/doctor.cjs"
   },
   "devDependencies": {
     "electron": "44.9.0",
@@ -91,7 +92,9 @@
           "native-host.cjs",
           "NativeHostLauncher.cs",
           "README.md",
-          "register-native-host.ps1"
+          "register-native-host.ps1",
+          "doctor.cjs",
+          "browsers.json"
         ]
       }
     ],

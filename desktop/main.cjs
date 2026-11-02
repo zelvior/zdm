@@ -72,7 +72,7 @@ if (process.argv.includes('--native-host')) {
       // Inside an AppImage the real executable is a temporary mount, so the .AppImage file itself is used.
       const runtimeExe = require('./platform.cjs').runtimeExecutable({ exe: app.getPath('exe') });
       await require('./browser-registration.cjs').writeHostLauncher(integrationRoot, runtimeExe);
-      let connectedBrowsers = [], connectionError = '', registration = [];
+      let connectedBrowsers = [], connectionError = '', registration = [], browsers = [];
       let nativeHostError = '';
       try { await require('./browser-registration.cjs').prepareNativeHost(integrationRoot, runtimeExe); }
       catch (error) { nativeHostError = error.message; }
@@ -83,7 +83,7 @@ if (process.argv.includes('--native-host')) {
         try { await registrationApi.ensureDefaultRegistrations(options); } catch { /* browsers are optional */ }
         try { connectedBrowsers = await registrationApi.connectInstalledBrowsers(options); connectionError = ''; }
         catch (error) { connectionError = error.message; }
-        try { await registrationApi.repairRegistrations(options); registration = await registrationApi.registrationStatus(options); }
+        try { await registrationApi.repairRegistrations(options); registration = await registrationApi.registrationStatus(options); browsers = await registrationApi.browserOverview(options); }
         catch (error) { connectionError = connectionError || error.message; }
         if (nativeHostError && !connectionError) connectionError = `${nativeHostError} (using the fallback launcher)`;
       };
@@ -91,7 +91,7 @@ if (process.argv.includes('--native-host')) {
       const browserScan = setInterval(connectBrowsers, 15000);
       browserScan.unref();
       const integration = async () => { await connectBrowsers(); return integrationInfo(); };
-      const integrationInfo = () => ({ port: bridge?.port || null, connectedBrowsers, connectionError, registration, extensionPath: path.join(integrationRoot, 'extension'), integrationPath: path.join(integrationRoot, 'integration'), packaged: app.isPackaged, executable: app.getPath('exe') });
+      const integrationInfo = () => ({ port: bridge?.port || null, connectedBrowsers, connectionError, registration, browsers, extensionPath: path.join(integrationRoot, 'extension'), integrationPath: path.join(integrationRoot, 'integration'), packaged: app.isPackaged, executable: app.getPath('exe') });
       const snapshot = () => ({ ...engine.snapshot(), integration: integrationInfo() });
       let aboutWindow = null;
       const openAbout = async () => {
@@ -156,6 +156,9 @@ if (process.argv.includes('--native-host')) {
         integration
       };
       handlers.registerBrowser = data => require('./browser-registration.cjs').registerBrowser(data, { dataDirectory: app.getPath('userData'), integrationRoot });
+      // A browser that is not on the list: the user gives the folder (macOS/Linux) or registry vendor key (Windows) it reads connections from.
+      handlers.registerCustom = async data => { const result = await require('./browser-registration.cjs').registerCustom(data || {}, { dataDirectory: app.getPath('userData'), integrationRoot }); await connectBrowsers(); return { ...result, integration: integrationInfo() }; };
+      handlers.removeCustom = async data => { await require('./browser-registration.cjs').removeCustom(String(data?.id || ''), { dataDirectory: app.getPath('userData') }); await connectBrowsers(); return integrationInfo(); };
       handlers.browserSetup = async ({ action, browser } = {}) => {
         if (action === 'open') return require('./browser-setup.cjs').openExtensions(browser);
         if (action === 'copy') { clipboard.writeText(path.join(integrationRoot, 'extension')); return; }
@@ -223,7 +226,7 @@ if (process.argv.includes('--native-host')) {
         if (engine.settings.notifyOnComplete && Notification.isSupported()) new Notification({ title: 'Download complete', body: d.filename }).show();
         if (engine.settings.revealOnComplete && d.path) shell.showItemInFolder(d.path);
       });
-      // Clipboard link monitor (on by default, can be switched off in Options). A copied download link opens "Download File Info"
+      // Clipboard link monitor (on by default, can be switched off in Settings). A copied download link opens "New download"
       // straight away while the app is in front, otherwise a notification offers it. Nothing downloads without a click.
       const { clipboardLinks } = require('./clipboard-links.cjs');
       let lastClipboard = '', lastOffered = '';
