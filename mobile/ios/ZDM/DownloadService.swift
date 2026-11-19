@@ -20,7 +20,7 @@ private final class Item {
     let checksum: String?
     let mirrors: [String]
     let category: String
-    let description: String
+    var description: String
     let scheduledAt: Date?
     let outputFormat: String?
     let extractFormat: String?
@@ -102,6 +102,12 @@ final class DownloadService {
 
     private func ok(_ value: Any) -> [String: Any] { return ["ok": true, "value": value] }
     private func failure(_ message: String) -> [String: Any] { return ["ok": false, "error": String(message.prefix(700))] }
+
+    private func formats(_ payload: [String: Any]) -> [String: Any] {
+        guard let url = payload["url"] as? String else { return failure("A page URL is required.") }
+        do { return ok(try findChoices(url)) }
+        catch { return failure(error.localizedDescription) }
+    }
 
     private func publicStatus(_ item: Item) -> String {
         switch item.status {
@@ -263,8 +269,8 @@ final class DownloadService {
         var data = Data()
         var error: Error?
         var status = 0
-        let task = URLSession.shared.dataTask(with: request) { body, response, failure in
-            if let failure = error { error = failure } else {
+        let task = URLSession.shared.dataTask(with: request) { body, response, requestError in
+            if let requestError = requestError { error = requestError } else {
                 status = (response as? HTTPURLResponse)?.statusCode ?? 0
                 data = Data((body ?? Data()).prefix(maxHtml))
             }
@@ -329,7 +335,7 @@ final class DownloadService {
     }
 
     private func regex(_ pattern: String, _ text: String) -> [[String]] {
-        guard let expression = try? NSRegularExpression(pattern: pattern, options: [.caseInsensitive, .dotsMatchLineSeparators]) else { return [] }
+        guard let expression = try? NSRegularExpression(pattern: pattern, options: [.caseInsensitive, .dotMatchesLineSeparators]) else { return [] }
         let ns = text as NSString
         return expression.matches(in: text, range: NSRange(location: 0, length: ns.length)).map { match in
             (0..<match.numberOfRanges).compactMap { index in
@@ -447,7 +453,7 @@ final class DownloadService {
             let temp = tempURL(item)
             if !FileManager.default.fileExists(atPath: temp.path) { FileManager.default.createFile(atPath: temp.path, contents: nil) }
             let handle = try FileHandle(forWritingTo: temp)
-            (handle as NSFileHandle).truncateFile(atOffset: UInt64(total))
+            try handle.truncate(atOffset: UInt64(total))
             try? handle.close()
             persist()
 
@@ -531,8 +537,8 @@ final class DownloadService {
             }
             do {
                 let handle = try FileHandle(forWritingTo: temp)
-                (handle as NSFileHandle).seek(toFileOffset: UInt64(from))
-                (handle as NSFileHandle).write(received)
+                try handle.seek(toOffset: UInt64(from))
+                try handle.write(contentsOf: received)
                 try? handle.close()
                 lock.lock()
                 block.done += Int64(received.count)
@@ -632,7 +638,7 @@ final class DownloadService {
         guard let handle = try? FileHandle(forReadingFrom: file) else { return false }
         var md5 = Insecure.MD5(); var sha = SHA256()
         while true {
-            let data = (handle as NSFileHandle).readData(ofLength: bufferSize)
+            let data = handle.readData(ofLength: bufferSize)
             if data.isEmpty { break }
             if algorithm == "md5" { md5.update(data: data) } else { sha.update(data: data) }
         }

@@ -2,7 +2,7 @@ name: ZDM
 options:
   bundleIdPrefix: com.zelvior
   deploymentTarget:
-    iOS: "13.0"
+    iOS: "13.4"
 targets:
   ZDM:
     type: application
@@ -24,12 +24,12 @@ targets:
           CODE_SIGNING_REQUIRED: NO
           PRODUCT_BUNDLE_IDENTIFIER: com.zelvior.zdm
           INFOPLIST_FILE: ZDM/Info.plist
-          IPHONEOS_DEPLOYMENT_TARGET: "13.0"
+          IPHONEOS_DEPLOYMENT_TARGET: "13.4"
           TARGETED_DEVICE_FAMILY: "1,2"
         Release:
           CODE_SIGNING_ALLOWED: NO
           CODE_SIGNING_REQUIRED: NO
           PRODUCT_BUNDLE_IDENTIFIER: com.zelvior.zdm
           INFOPLIST_FILE: ZDM/Info.plist
-          IPHONEOS_DEPLOYMENT_TARGET: "13.0"
+          IPHONEOS_DEPLOYMENT_TARGET: "13.4"
           TARGETED_DEVICE_FAMILY: "1,2"
