@@ -35,7 +35,7 @@ private class Item(
     val checksum: String?,
     val mirrors: List<String>,
     val category: String,
-    val description: String,
+    var description: String,
     val scheduledAt: Long?,
     val outputFormat: String?,
     val extractFormat: String?
@@ -123,6 +123,13 @@ object DownloadService {
             ok("Mobile builds do not have desktop browser extensions; use the share sheet or paste a link.")
         "openProgress", "closeProgress", "resizeProgress", "about" -> ok(true)
         else -> failure("Unsupported method: $method")
+    }
+
+    private fun formats(request: JSONObject): JSONObject = try {
+        val url = request.optString("url", "")
+        if (url.isBlank()) failure("A page URL is required.") else ok(findChoices(url))
+    } catch (error: Exception) {
+        failure(error.message ?: "Could not inspect that page.")
     }
 
     private fun ok(value: Any): JSONObject = JSONObject().put("ok", true).put("value", value)
@@ -311,7 +318,7 @@ object DownloadService {
                 val buffer = okio.Buffer()
                 var total = 0
                 while (!source.exhausted() && total < limit) {
-                    val chunk = source.readByteArray(minOf(64 * 1024, limit - total))
+                    val chunk = source.readByteArray(minOf(64 * 1024L, (limit - total).toLong()))
                     buffer.write(chunk); total += chunk.size
                 }
                 buffer.readUtf8()
@@ -634,14 +641,21 @@ object DownloadService {
     }
 
     private fun parseTime(value: String): Long? = try {
-        val formats = listOf(
+        val parsers = listOf(
             java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.US),
             java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.US))
-        for (format in formats) {
+        var result: Long? = null
+        for (format in parsers) {
             format.timeZone = java.util.TimeZone.getTimeZone("UTC")
-            try { return format.parse(value)?.time?.takeIf { it > System.currentTimeMillis() } } catch (_: Exception) { }
+            try {
+                val parsed = format.parse(value)?.time
+                if (parsed != null && parsed > System.currentTimeMillis()) {
+                    result = parsed
+                    break
+                }
+            } catch (_: Exception) { }
         }
-        null
+        result
     } catch (_: Exception) { null }
 
     private fun jsonArrayValues(value: Any?): List<String> = when (value) {

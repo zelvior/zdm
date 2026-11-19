@@ -159,6 +159,17 @@ test('the Android Kotlin and Java bytecode targets match', () => {
   assert.match(gradle, /jvmTarget\s*=\s*"1\.8"/);
 });
 
+test('the Android engine compiles without the reported Kotlin errors', () => {
+  const engine = read('mobile/android/app/src/main/java/com/zelvior/zdm/DownloadService.kt');
+  assert.match(engine, /private fun formats\(request: JSONObject\): JSONObject/);
+  assert.match(engine, /var description: String/);
+  assert.match(engine, /readByteArray\(minOf\(64 \* 1024L/);
+  assert.ok(!engine.includes('readByteArray(minOf(64 * 1024,'), 'okio expects a Long byte count');
+  const parseTime = engine.slice(engine.indexOf('private fun parseTime'));
+  assert.match(parseTime, /var result: Long\? = null/);
+  assert.ok(!parseTime.slice(0, parseTime.indexOf('\n\n')).includes('return format.parse'), 'expression bodies cannot return');
+});
+
 test('the Android Gradle build declares dependency repositories', () => {
   const settings = read('mobile/android/settings.gradle.kts');
   assert.match(settings, /dependencyResolutionManagement/);
