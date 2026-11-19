@@ -125,9 +125,10 @@ jobs:
           cat > ../notes.md <<NOTES
           ## ${TITLE}
 
-          Native ZDM mobile builds with a working segmented download engine: HTTP(S) byte ranges, four parallel blocks,
-          resume after restart, pause/resume/cancel and MD5/SHA-256 verification. Output goes to the app's own Downloads
-          folder; files are never written to an arbitrary host path. See [docs/MOBILE.md](https://github.com/zelvior/zdm/blob/main/docs/MOBILE.md).
+          Native ZDM mobile builds with the full desktop renderer UI and bridge API: scheduling, mirrors, checksums,
+          clipboard, settings, page media discovery, segmented HTTP(S) transfers with resume, pause/resume/cancel and
+          MD5/SHA-256 verification. Output goes to the app's own Downloads folder. Browser native messaging, FFmpeg
+          transcoding and arbitrary filesystem paths are desktop-only; see [docs/MOBILE.md](https://github.com/zelvior/zdm/blob/main/docs/MOBILE.md).
 
           | File | What it is |
           |---|---|
@@ -136,8 +137,8 @@ jobs:
           | \`ZDM-Android-arm64-v8a.apk\` | Unsigned 64-bit-only APK |
           | \`ZDM-iOS-unsigned.ipa\` | Unsigned 64-bit IPA (re-sign before installing) |
 
-          Browser download takeover, page-video extraction/yt-dlp and FFmpeg/HLS remuxing remain desktop-only features;
-          they are not part of these mobile builds.
+          Browser download takeover/native messaging and FFmpeg/HLS transcoding still require desktop operating-system
+          facilities; the share sheet, clipboard and direct media links cover the equivalent mobile flows.
 
           Verify with \`SHA256SUMS-android.txt\` and \`SHA256SUMS-ios.txt\`.
           NOTES

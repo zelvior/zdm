@@ -22,7 +22,7 @@ android {
     }
 }
 
-android.sourceSets.getByName("main").assets.srcDirs("../shared")
+android.sourceSets.getByName("main").assets.srcDirs("../../../renderer", "../../../assets", "../shared")
 
 dependencies {
     implementation("com.squareup.okhttp3:okhttp:4.12.0")

@@ -1,7 +1,7 @@
 # iOS app
 
-`ZdmViewController.swift` hosts `shared/index.html` in a WKWebView, receives `zdmNative` script messages and resolves
-them through `window.zdmResolve`. `DownloadService.swift` implements the native bridge with `URLSession` byte ranges,
+`ZdmViewController.swift` hosts the full desktop renderer (`renderer/index.html`) in a WKWebView, receives `zdmNative` script messages and resolves
+them through `window.zdmResolve`. `DownloadService.swift` implements the native bridge with settings, scheduling, mirrors, page media discovery, `URLSession` byte ranges,
 2 MiB blocks, persisted offsets, pause/resume/cancel and CryptoKit checksum verification. Files are saved under the
 app's Documents directory.
 

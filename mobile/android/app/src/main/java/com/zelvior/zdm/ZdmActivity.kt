@@ -18,7 +18,7 @@ class ZdmActivity : Activity() {
         web.settings.javaScriptEnabled = true
         web.webViewClient = WebViewClient()
         web.addJavascriptInterface(Bridge(), "zdmNative")
-        web.loadUrl("file:///android_asset/index.html")
+        web.loadUrl("file:///android_asset/renderer/index.html")
         setContentView(web)
     }
 

@@ -1,7 +1,7 @@
 # Android app
 
-`ZdmActivity.kt` hosts `shared/index.html` in a WebView and injects `window.zdmNative.call(method, json)`.
-`DownloadService.kt` executes the native bridge contract with OkHttp: HEAD probe, four-worker byte-range scheduler,
+`ZdmActivity.kt` hosts the full desktop renderer (`renderer/index.html`) in a WebView and injects `window.zdmNative.call(method, json)`.
+`DownloadService.kt` executes the native bridge contract with OkHttp: settings, scheduling, mirrors, page media discovery, HEAD probe, four-worker byte-range scheduler,
 2 MiB blocks, resume from `state.json`, pause/resume/cancel, and MD5/SHA-256 verification. Output is written to
 `filesDir/downloads/out`.
 

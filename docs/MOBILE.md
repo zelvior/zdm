@@ -2,40 +2,52 @@
 
 The desktop app cannot be recompiled for phones: Electron has no Android/iOS target, and the engine relies on Node-only
 APIs (`worker_threads`, `node:http2`, raw `fs` handles, native messaging, an ASAR-unpacked FFmpeg and a loopback HTTP
-bridge). `mobile/` is therefore a native port with its own UI, bridge and download engine.
+bridge). `mobile/` is therefore a native port that reuses the **full desktop renderer** and implements the same
+`window.downloader` API on top of a native bridge (`renderer/mobile-bridge.js`).
 
 ## What the shipped mobile builds do
 
-Both native engines implement the same core download path:
+Both native engines implement the desktop bridge surface:
 
-- HTTP and HTTPS links only, with credentials rejected.
-- `HEAD` probe for file size; four worker slots split the file into 2 MiB byte-range blocks.
-- Parallel range requests written into one pre-sized file, with retries and 64 KiB copy buffers.
-- Persisted block offsets in `state.json`, so an interrupted transfer resumes after restart.
-- Pause, resume, retry and cancel, plus MD5/SHA-256 verification via `checksum: sha256:<hex>` or `md5:<hex>`.
-- Safe filenames and collision suffixes; output stays inside the app's own `Downloads` directory.
-- Shared mobile UI (`mobile/shared/`) polls `/status` and drives `/downloads` and `/control` through a small bridge.
+- `snapshot` / `status` with the same download fields the renderer expects: status, size, speed, per-connection
+  progress, category, description, creation/schedule times, output path and error text.
+- `add` / `downloads` with one or many links, mirrors, custom filename, category, note, schedule time, checksum,
+  page-extraction flag, output format and queue-only mode.
+- `control` / `action` for pause, resume, retry, cancel, remove, open, reveal, start and stop.
+- `settings` for concurrency, connections per file, speed limit, hash verification, notifications, clipboard watching
+  and all other renderer settings. Settings are persisted in `state.json`.
+- `clipboard` (Android `ClipboardManager`, iOS `UIPasteboard`) and `chooseDirectory` (the app's own output folder).
+- `formats` and `review` for page media discovery: YouTube `ytInitialPlayerResponse` direct formats, `og:video`,
+  `<source>` and JSON-LD `contentUrl` / `.mp4` links on other pages.
+- `integration`, `browserSetup`, `registerBrowser`, `registerCustom`, `removeCustom`, `openProgress`, `about` and the
+  progress-window methods return mobile-appropriate responses so every desktop screen still works.
+
+The transfer engine itself keeps the desktop behaviour that fits a phone: HTTP(S) `HEAD` probing, mirror failover,
+byte-range blocks sized from the connections setting (minimum 2 MiB), four worker slots, retries, pause/resume/cancel,
+persisted block offsets, speed reporting and MD5/SHA-256 verification. A generation counter prevents a cancelled
+worker from finalising a file after a restart.
 
 | Target | Architecture | Build artifact | Installation |
 |---|---|---|---|
 | Android | `armeabi-v7a` (32-bit) and `arm64-v8a` (64-bit), plus universal APK | Unsigned APK | Sideload; signing required for Play Store |
 | iOS | 64-bit only (Apple ended 32-bit support in iOS 11) | Unsigned IPA | Re-sign with an Apple identity before installing |
 
-The bridge contract is in `mobile/protocol/bridge.json`; Android uses an injected `zdmNative` JavaScript interface and
-iOS uses a `WKScriptMessageHandler` plus `window.zdmResolve`. Both surface the same Promise API to `mobile/shared/zdm.js`.
+## Platform boundaries
 
-## Platform limits (documented, not hidden)
+A small number of desktop capabilities depend on operating-system facilities that mobile platforms do not offer:
 
-- Browser download takeover and page-video extraction (yt-dlp/`formats`) are desktop-only. The mobile UI accepts direct
-  file URLs, not web pages; `formats` returns an explanatory error.
-- FFmpeg/HLS/DASH remuxing, `outputFormat` conversion and arbitrary filesystem destinations are not ported.
-- Android writes to `filesDir/downloads/out`; iOS writes to the app's Documents directory. Neither platform permits
-  writing anywhere the user chooses without a system picker/SAF integration.
-- iOS background segmented transfers are constrained by `URLSession` rules; downloads continue only while the app is
-  active. A foreground service/WorkManager path is not wired up yet.
-- The iOS build sets `NSAllowsArbitraryLoads` so direct `http://` links work outside the WKWebView; prefer HTTPS links
-  and remove this exception before any App Store submission that needs strict ATS.
-- iOS 32-bit builds cannot exist. The legacy Android 32-bit APK remains supported.
+- **Browser native messaging** cannot exist on Android/iOS; the integration screen explains this and the share sheet /
+  clipboard replace it. The renderer and its browser-connection UI are still present.
+- **YouTube cipher-protected formats** need yt-dlp's JavaScript runtime. The native extractor uses direct
+  `streamingData` URLs; if a video offers only ciphered formats, paste the resolved media link instead.
+- **FFmpeg remux/transcode** (MKV/WebM/FLAC targets and HLS/DASH key handling) needs a mobile FFmpeg build and is not
+  bundled. Direct media downloads and the formats the browser already exposes work.
+- **Arbitrary filesystem paths** are replaced by the app's own Downloads/Documents folder; neither OS allows writing
+  anywhere without a system picker/SAF integration.
+- **iOS 32-bit builds cannot exist** (Apple ended support in iOS 11), so only 64-bit iOS is shipped.
+- **iOS background segmented transfers** are constrained by `URLSession`; downloads continue while the app is active.
+- The iOS build sets `NSAllowsArbitraryLoads` so `http://` links work outside the WKWebView; prefer HTTPS and remove
+  this exception before a strict App Store submission.
 - Mobile builds are unsigned; users must trust the source and verify the published SHA-256 sums.
 
 ## Building locally

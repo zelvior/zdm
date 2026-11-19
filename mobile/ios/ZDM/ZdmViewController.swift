@@ -11,8 +11,9 @@ final class ZdmViewController: UIViewController, WKScriptMessageHandler {
         web.frame = view.bounds
         web.autoresizingMask = [.flexibleWidth, .flexibleHeight]
         view.addSubview(web)
-        if let url = Bundle.main.url(forResource: "index", withExtension: "html", subdirectory: "shared") {
-            web.loadFileURL(url, allowingReadAccessTo: url.deletingLastPathComponent())
+        if let url = Bundle.main.url(forResource: "index", withExtension: "html", subdirectory: "renderer"),
+           let bundleRoot = Bundle.main.resourceURL {
+            web.loadFileURL(url, allowingReadAccessTo: bundleRoot)
         } else if let url = Bundle.main.url(forResource: "index", withExtension: "html") {
             web.loadFileURL(url, allowingReadAccessTo: url.deletingLastPathComponent())
         }
