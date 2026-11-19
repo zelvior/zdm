@@ -6,5 +6,5 @@
 `filesDir/downloads/out`.
 
 Build requirements: Android SDK 34, JDK 17 and Gradle 8.9. The build produces `armeabi-v7a` (32-bit), `arm64-v8a`
-(64-bit) and universal unsigned release APKs. Desktop `ffmpeg-static` binaries cannot be used here; media remuxing is
+(64-bit) and universal release APKs, signed with the public `zdm-release.p12` sideload key. Desktop `ffmpeg-static` binaries cannot be used here; media remuxing is
 not part of this mobile build. See [docs/MOBILE.md](../../docs/MOBILE.md).

@@ -33,7 +33,7 @@ prevents a cancelled worker from finalising a file after a restart.
 
 | Target | Architecture | Build artifact | Installation |
 |---|---|---|---|
-| Android | `armeabi-v7a` (32-bit) and `arm64-v8a` (64-bit), plus universal APK | Unsigned APK | Sideload; signing required for Play Store |
+| Android | `armeabi-v7a` (32-bit) and `arm64-v8a` (64-bit), plus universal APK | Signed APK | Install directly; Play Store still needs its own signing key |
 | iOS | 64-bit only (Apple ended 32-bit support in iOS 11) | Unsigned IPA | Re-sign with an Apple identity before installing |
 
 ## Platform boundaries
@@ -54,7 +54,9 @@ A small number of desktop capabilities depend on operating-system facilities tha
   restriction.
 - The iOS build sets `NSAllowsArbitraryLoads` so `http://` links work outside the WKWebView; prefer HTTPS and remove
   this exception before a strict App Store submission.
-- Mobile builds are unsigned; users must trust the source and verify the published SHA-256 sums.
+- Android APKs are signed with `mobile/android/zdm-release.p12`, a public sideload key committed to this repository.
+  The key provides no publisher authenticity; verify the published SHA-256 sums. If an older build used a different key,
+  uninstall it before installing this one. The iOS IPA remains unsigned and must be re-signed outside CI.
 
 ## Building locally
 
@@ -79,7 +81,7 @@ xcodebuild -project ZDM.xcodeproj -scheme ZDM -configuration Release \
 ## Releases
 
 `.github/workflows/release-mobile.yml` is a manual `workflow_dispatch`. It builds the three APK variants and one IPA,
-renames them to `ZDM-Android-universal.apk`, `ZDM-Android-armeabi-v7a.apk`, `ZDM-Android-arm64-v8a.apk` and
+aligns, signs and renames them to `ZDM-Android-universal.apk`, `ZDM-Android-armeabi-v7a.apk`, `ZDM-Android-arm64-v8a.apk` and
 `ZDM-iOS-unsigned.ipa`, writes `SHA256SUMS-android.txt` / `SHA256SUMS-ios.txt`, uploads them as workflow artifacts and
 attaches them to the release tag supplied in the dispatch form (creating a pre-release when the tag does not exist).
 
