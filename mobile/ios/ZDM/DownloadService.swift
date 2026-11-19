@@ -73,9 +73,9 @@ final class DownloadService {
     private init() {
         let documents = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
         root = documents.appendingPathComponent("zdm", isDirectory: true)
+        settings = defaults
         try? FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
         try? FileManager.default.createDirectory(at: outURL, withIntermediateDirectories: true)
-        settings = defaults
         load()
     }
 

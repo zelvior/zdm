@@ -149,6 +149,14 @@ test('the Android workflow does not depend on the retired SDK tools package', ()
   assert.match(workflow, /Prepare Android SDK/);
   assert.match(workflow, /platforms;android-34/);
   assert.match(workflow, /build-tools;34\.0\.0/);
+  assert.ok(!workflow.includes('chmod +x'), 'sdkmanager is already executable on GitHub runners');
+});
+
+test('the iOS singleton initializes stored properties before using computed paths', () => {
+  const swift = read('mobile/ios/ZDM/DownloadService.swift');
+  const init = swift.slice(swift.indexOf('private init()'));
+  assert.ok(init.indexOf('settings = defaults') < init.indexOf('createDirectory(at: outURL'),
+    'settings must be assigned before outURL is accessed in init');
 });
 
 test('the mobile release workflow publishes native builds, not prototype shells', () => {
