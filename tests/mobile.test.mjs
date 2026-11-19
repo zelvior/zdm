@@ -152,6 +152,12 @@ test('the Android workflow does not depend on the retired SDK tools package', ()
   assert.ok(!workflow.includes('chmod +x'), 'sdkmanager is already executable on GitHub runners');
 });
 
+test('the Android Gradle build declares dependency repositories', () => {
+  const settings = read('mobile/android/settings.gradle.kts');
+  assert.match(settings, /dependencyResolutionManagement/);
+  assert.match(settings, /repositories\s*\{[^}]*google\(\)[^}]*mavenCentral\(\)/s);
+});
+
 test('the iOS singleton initializes stored properties before using computed paths', () => {
   const swift = read('mobile/ios/ZDM/DownloadService.swift');
   const init = swift.slice(swift.indexOf('private init()'));
