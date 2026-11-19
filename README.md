@@ -182,6 +182,7 @@ Not connecting? Run the built-in connection check: **[docs/INSTALL.md](docs/INST
 | [docs/RELEASING.md](docs/RELEASING.md) | How a release is built and published |
 | [docs/BROWSER-DISTRIBUTION.md](docs/BROWSER-DISTRIBUTION.md) | How the extension is loaded today and how it could be distributed |
 | [docs/CONTRIBUTOR-START-HERE.md](docs/CONTRIBUTOR-START-HERE.md) | A map of the code for new contributors |
+| [docs/MOBILE.md](docs/MOBILE.md) | Native Android/iOS builds, supported features and platform limits |
 
 ## 🔧 Build from source
 
@@ -194,7 +195,7 @@ npm run dist:mac -- --arm64   # macOS (or --x64): .dmg and .zip -> release/
 npm run dist:linux -- --x64   # Linux (or --arm64): .AppImage, .deb, .rpm -> release/
 ```
 
-Requires Node.js 22. Build each package on its own operating system (Windows installer on Windows, `.dmg` on macOS, Linux packages on
+Requires Node.js 22. If `npm ci` fails because the Electron or FFmpeg download is blocked, run `npm run setup` instead: it installs the packages without lifecycle scripts and retries each binary separately with a clear error. Build each package on its own operating system (Windows installer on Windows, `.dmg` on macOS, Linux packages on
 Linux). Before `dist:mac` / `dist:linux`, fetch yt-dlp with `node scripts/fetch-ytdlp.mjs vendor mac` (or `linux-x64`, `linux-arm64`).
 The 32-bit and older-system track lives in [`legacy/`](legacy/). Release steps: [docs/RELEASING.md](docs/RELEASING.md).
 

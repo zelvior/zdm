@@ -8,7 +8,7 @@ let state = { downloads: [], settings: {}, integration: {} }, selectedId = null,
 const selectedIds = new Set();
 const pending = new Set();
 let pendingReviewId = null;
-let selectionDrag = null, suppressRowClick = false;
+let selectionDrag = null;
 const dismissedReviews = new Set();
 const iconPaths = {
   add:['M12 5v14M5 12h14'], play:['M8 5.5v13l11-6.5z'], pause:['M8 5v14M16 5v14'], trash:['M4 7h16M10 7V4h4v3M6 7l1 13h10l1-13M10 11v6M14 11v6'],
@@ -256,7 +256,7 @@ function tapRow(id,event){
   const now = Date.now();
   if (lastTap.id === id && now - lastTap.time < 400) { lastTap = {id:null,time:0}; showDetails(id); } else lastTap = {id,time:now};
 }
-function finishMarquee(event){if(!selectionDrag||selectionDrag.pointerId!==event.pointerId)return;const moved=selectionDrag.moved,row=selectionDrag.row;try{tableScroll.releasePointerCapture(event.pointerId);}catch{}selectionDrag=null;selectionRectangle.hidden=true;if(moved){suppressRowClick=true;setTimeout(()=>{suppressRowClick=false;},0);}else if(row)tapRow(row.dataset.id,event);else selectDownload(null);}
+function finishMarquee(event){if(!selectionDrag||selectionDrag.pointerId!==event.pointerId)return;const moved=selectionDrag.moved,row=selectionDrag.row;try{tableScroll.releasePointerCapture(event.pointerId);}catch{}selectionDrag=null;selectionRectangle.hidden=true;if(!moved){if(row)tapRow(row.dataset.id,event);else selectDownload(null);}}
 tableScroll.addEventListener('pointerup',finishMarquee);tableScroll.addEventListener('pointercancel',finishMarquee);
 $('#table-scroll').addEventListener('keydown',event => { if (!visibleDownloads.length) return; const index = visibleDownloads.findIndex(d => d.id === selectedId); if (['ArrowDown','ArrowUp','Home','End'].includes(event.key)) { event.preventDefault(); const next = event.key === 'Home' ? 0 : event.key === 'End' ? visibleDownloads.length - 1 : Math.max(0,Math.min(visibleDownloads.length - 1,index + (event.key === 'ArrowDown' ? 1 : -1))); selectDownload(visibleDownloads[next].id); $$('.download-row').find(row => row.dataset.id === selectedId)?.scrollIntoView({block:'nearest'}); } if (event.key === 'Enter' && selectedId) showDetails(selectedId); if (event.key === 'Delete') performAction(selected(),'remove'); });
 $('#dismiss-toast').addEventListener('click',() => { $('#toast').hidden = true; }); $$('[data-close]').forEach(button => button.addEventListener('click',() => { const dialog = button.closest('dialog'); dialog.close(); if (dialog.id === 'add-dialog') dismissReview(); })); $('#add-dialog').addEventListener('cancel',() => dismissReview()); document.addEventListener('keydown',event => { if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'n') { event.preventDefault(); if (!$$('dialog[open]').length) openAdd(); } if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'f' && !$$('dialog[open]').length) { event.preventDefault(); $('#search').focus(); } });

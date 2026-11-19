@@ -56,3 +56,17 @@ test('selection is decided on pointer-up, because the list captures the pointer 
   assert.ok(!/row\.addEventListener\('click'/.test(js), 'a row click listener would never fire while the list holds the pointer');
   assert.ok(/setPointerCapture/.test(js) && /tapRow\(row\.dataset\.id/.test(js));
 });
+
+test('the content security policy allows the local brand icon', () => {
+  const meta = /<meta[^>]+http-equiv="Content-Security-Policy"[^>]+content="([^"]+)"/.exec(html);
+  assert.ok(meta, 'index.html declares a CSP');
+  assert.match(meta[1], /default-src 'none'/);
+  assert.match(meta[1], /img-src 'self'/);
+});
+
+test('the layout adapts to narrow and short windows', () => {
+  for (const width of [1100, 900, 760]) assert.ok(css.includes(`@media (max-width: ${width}px)`), `breakpoint ${width}`);
+  assert.ok(css.includes('@media (max-height: 620px)'), 'short-window breakpoint');
+  assert.match(css, /\.selection-bar[^}]*flex-wrap: wrap/);
+  assert.match(css, /\.summary[^}]*flex-wrap: wrap/);
+});

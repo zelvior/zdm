@@ -1,0 +1,35 @@
+name: ZDM
+options:
+  bundleIdPrefix: com.zelvior
+  deploymentTarget:
+    iOS: "13.0"
+targets:
+  ZDM:
+    type: application
+    platform: iOS
+    sources:
+      - path: ZDM
+        excludes:
+          - Info.plist
+      - path: ../shared
+        type: folder
+      - path: ../../renderer
+        type: folder
+      - path: ../../assets
+        type: folder
+    settings:
+      configs:
+        Debug:
+          CODE_SIGNING_ALLOWED: NO
+          CODE_SIGNING_REQUIRED: NO
+          PRODUCT_BUNDLE_IDENTIFIER: com.zelvior.zdm
+          INFOPLIST_FILE: ZDM/Info.plist
+          IPHONEOS_DEPLOYMENT_TARGET: "13.0"
+          TARGETED_DEVICE_FAMILY: "1,2"
+        Release:
+          CODE_SIGNING_ALLOWED: NO
+          CODE_SIGNING_REQUIRED: NO
+          PRODUCT_BUNDLE_IDENTIFIER: com.zelvior.zdm
+          INFOPLIST_FILE: ZDM/Info.plist
+          IPHONEOS_DEPLOYMENT_TARGET: "13.0"
+          TARGETED_DEVICE_FAMILY: "1,2"

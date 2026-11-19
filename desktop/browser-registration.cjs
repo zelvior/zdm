@@ -5,7 +5,7 @@ const { execFile } = require('node:child_process');
 const { promisify } = require('node:util');
 const exec = promisify(execFile);
 const platformApi = require('./platform.cjs');
-const { HOST, BROWSERS, isWindows, browserCatalog, registrationTarget, hostCandidates, launcherName, launcherScript } = platformApi;
+const { HOST, BROWSERS, isWindows, browserCatalog, hostCandidates, launcherName, launcherScript } = platformApi;
 
 // Windows keeps the pointer to the manifest in the registry; macOS and Linux have the browser read the manifest from a fixed folder.
 const manifestFileName = `${HOST}.json`;

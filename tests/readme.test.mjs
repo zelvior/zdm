@@ -39,3 +39,11 @@ test('the README states the facts it must: license, platforms and the DRM positi
   assert.match(readme, /does not and will not bypass DRM/);
   assert.ok(!/black-and-white/i.test(readme), 'the interface is a classic light window, not black and white');
 });
+
+test('the mobile feasibility document is linked from the README', () => {
+  assert.match(readme, /\[docs\/MOBILE\.md\]\(docs\/MOBILE\.md\)/);
+  const doc = fs.readFileSync(path.join(root, 'docs', 'MOBILE.md'), 'utf8');
+  assert.match(doc, /cannot be recompiled/);
+  assert.match(doc, /iOS 32-bit/);
+  assert.ok(fs.existsSync(path.join(root, 'mobile', 'protocol', 'bridge.json')));
+});

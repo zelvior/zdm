@@ -16,12 +16,12 @@ npm test
 npm start
 ```
 
-Node.js 22 is required. `npm test` runs the engine, extension and native-host tests. Tests that need a real `ffmpeg` or
+Node.js 22 is required. If `npm ci` fails on the Electron or FFmpeg postinstall (blocked release assets, proxy CA), run `npm run setup` — it installs packages with `--ignore-scripts` and retries each binary with an actionable message. `npm test` runs the engine, extension and native-host tests; the three tests that need a real FFmpeg binary skip themselves when it is missing. Tests that need a real `ffmpeg` or
 `googlevideo` need the production dependencies installed (`npm ci`).
 
 ## Pull requests
 
-- `npm test` must pass.
+- `npm test` and `npm run lint` must pass.
 - Add or update a test for every behaviour change. Download-engine changes need a byte-exact test (compare hashes of the result).
 - Do not include private URLs, cookies, tokens, browser profile data or proprietary code.
 - UI changes stay in the black-and-white theme: no colour accents, no gradients, square corners. Meaning must never depend on colour alone.

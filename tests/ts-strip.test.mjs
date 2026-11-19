@@ -1,12 +1,15 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
+import { accessSync, constants as fsConstants } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import ffmpegPath from 'ffmpeg-static';
 import { stripServiceTables, needsServiceTableRemoval, TS_PACKET } from '../core/ts-strip.mjs';
 
+const ffmpegReady = (() => { try { accessSync(ffmpegPath, fsConstants.X_OK); return true; } catch { return false; } })();
+const binaryTest = ffmpegReady ? test : test.skip;
 const PAT = 0x0000, VIDEO = 0x100, AUDIO = 0x101, NULL = 0x1fff;
 const SI = [0x10, 0x11, 0x12, 0x13, 0x14];
 const packet = (pid, fill = pid & 0xff) => { const b = Buffer.alloc(TS_PACKET, fill); b[0] = 0x47; b[1] = (pid >> 8) & 0x1f; b[2] = pid & 0xff; b[3] = 0x10; return b; };
@@ -81,7 +84,7 @@ test('an aborted download stops the clean-up, and only Linux needs it', async t 
   assert.equal(needsServiceTableRemoval('darwin'), false);
 });
 
-test('with the bundled ffmpeg: a real TS (which carries an SDT) is cleaned and still remuxes into an MP4 with both tracks', async t => {
+binaryTest('with the bundled ffmpeg: a real TS (which carries an SDT) is cleaned and still remuxes into an MP4 with both tracks', async t => {
   const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'ts-real-'));
   t.after(() => fs.rm(dir, { recursive: true, force: true }));
   const run = (args) => spawnSync(ffmpegPath, ['-nostdin', '-v', 'error', '-y', ...args], { encoding: 'utf8' });

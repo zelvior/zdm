@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import path from 'node:path';
+import fs from 'node:fs';
 import { createRequire } from 'node:module';
 import { bundledYtdlpPath, ytdlpFileName } from '../core/tools.mjs';
 import { ytdlpTarget, targetNames } from '../scripts/ytdlp-assets.mjs';
@@ -58,4 +59,25 @@ test('the legacy track can target older macOS and 32-bit Linux without changing 
   assert.equal(legacy.devDependencies.electron, '22.3.27');
   assert.equal(legacy.build.mac.identity, null);
   assert.equal(legacy.build.linux.executableName, 'zdm-legacy');
+});
+
+test('all shipped components advertise the same version', () => {
+  const manifests = ['manifest.json', 'manifest.firefox.json', 'manifest.legacy.json'].map(name =>
+    JSON.parse(fs.readFileSync(new URL(`../extension/${name}`, import.meta.url), 'utf8')).version);
+  assert.deepEqual([...new Set([pkg.version, legacy.version, ...manifests])], [pkg.version]);
+  const http = fs.readFileSync(new URL('../core/http.mjs', import.meta.url), 'utf8');
+  assert.match(http, new RegExp(`ZDM/${pkg.version.replaceAll('.', '\\.')}`));
+});
+
+test('the mobile workflow builds, renames and publishes native artifacts', () => {
+  const workflow = fs.readFileSync(new URL('../.github/workflows/release-mobile.yml', import.meta.url), 'utf8');
+  for (const expected of ['assembleRelease', 'ZDM-Android-universal.apk', 'ZDM-Android-armeabi-v7a.apk',
+    'ZDM-Android-arm64-v8a.apk', 'ZDM-iOS-unsigned.ipa', 'gh release upload', 'gh release create']) {
+    assert.ok(workflow.includes(expected), `workflow is missing ${expected}`);
+  }
+  assert.ok(!/\bprototype\b/i.test(workflow), 'the release notes must not describe native builds as prototypes');
+  const gradle = fs.readFileSync(new URL('../mobile/android/app/build.gradle.kts', import.meta.url), 'utf8');
+  assert.match(gradle, /armeabi-v7a/);
+  assert.match(gradle, /arm64-v8a/);
+  assert.match(gradle, /okhttp/);
 });

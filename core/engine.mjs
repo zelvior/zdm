@@ -1,5 +1,5 @@
 import './compat.mjs';
-import { EventEmitter, setMaxListeners } from 'node:events';
+import { EventEmitter } from 'node:events';
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import { randomUUID } from 'node:crypto';
@@ -10,16 +10,15 @@ import { youtubeUrl, downloadYoutube } from './youtube.mjs';
 import {streamProgress} from './stream-progress.mjs';
 import {downloadSabr,normalizeSabrSession} from './sabr.mjs';
 import { constants as fsConstants } from 'node:fs';
-import { prefetch, resolveHost } from './dns.mjs';
+import { prefetch } from './dns.mjs';
 import { downloadBlock } from './chunk.mjs';
 import { ChunkPool } from './pool.mjs';
 import { configureTransport, transportConfig, throttleFrom, preferMultiplex } from './http.mjs';
 import { RangeSet } from './ranges.mjs';
 import { BlockScheduler, MIN_BLOCK, maxBlockFor } from './scheduler.mjs';
 import { HashService } from './hasher.mjs';
-import { HashSession } from './hash-session.mjs';
 import { normalizeChecksum, digestsFromHeaders } from './digest.mjs';
-import { CATEGORY, CATEGORY_NAMES, categoryFor, withExtension, looksLikeWebPage } from './filetypes.mjs';
+import { CATEGORY_NAMES, categoryFor, withExtension, looksLikeWebPage } from './filetypes.mjs';
 import { EXTRACT_FORMATS, validFormatSelector, downloadWithYtdlp, downloadWithFfmpeg, available as extractorAvailable, isAudioFormat } from './extract.mjs';
 
 const TRANSIENT = new Set(['downloading', 'probing', 'assembling']);

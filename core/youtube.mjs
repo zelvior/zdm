@@ -1,6 +1,5 @@
 import './compat.mjs';
 import {spawn} from 'node:child_process';
-import {fileURLToPath} from 'node:url';
 import path from 'node:path';
 import {promises as fs} from 'node:fs';
 import ffmpeg from 'ffmpeg-static';

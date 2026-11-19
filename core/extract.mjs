@@ -1,7 +1,6 @@
 import './compat.mjs';
 import { spawn } from 'node:child_process';
 import { promises as fs } from 'node:fs';
-import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 import { bundledYtdlpPath } from './tools.mjs';
 
