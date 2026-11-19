@@ -14,7 +14,7 @@ export function validUrl(value) {
 }
 
 export function cleanHeaders(input = {}) {
-  const headers = { 'user-agent': 'ZDM/0.1', 'accept-encoding': 'identity' };
+  const headers = { 'user-agent': 'ZDM/0.3.0', 'accept-encoding': 'identity' };
   const allowed = new Set(['referer', 'cookie', 'authorization', 'origin', 'user-agent', 'accept']);
   for (const [key, value] of Object.entries(input)) {
     if (allowed.has(key.toLowerCase()) && typeof value === 'string' && value.length <= 32768 && !/[\r\n]/.test(value)) headers[key.toLowerCase()] = value;

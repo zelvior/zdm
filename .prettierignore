@@ -1,0 +1,11 @@
+node_modules/
+release/
+legacy/stage/
+legacy/release/
+vendor/
+package-lock.json
+scripts/__pycache__/
+assets/
+build/
+docs/media/
+docs/branding/

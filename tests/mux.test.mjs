@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { promises as fs } from 'node:fs';
+import { promises as fs, accessSync, constants as fsConstants } from 'node:fs';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import http from 'node:http';
@@ -10,7 +10,11 @@ import { setTimeout as delay } from 'node:timers/promises';
 import ffmpeg from 'ffmpeg-static';
 import { DownloadEngine } from '../core/engine.mjs';
 
-test('direct adaptive tracks download separately and complete as audible MP4',async t=>{
+// A source checkout can be installed without the ffmpeg binary (restricted network). Skip only the tests that need it.
+const ffmpegReady = (() => { try { accessSync(ffmpeg, fsConstants.X_OK); return true; } catch { return false; } })();
+const binaryTest = ffmpegReady ? test : test.skip;
+
+binaryTest('direct adaptive tracks download separately and complete as audible MP4',async t=>{
   const root=await fs.mkdtemp(path.join(os.tmpdir(),'zdm-direct-pair-'));
   const run=promisify(execFile);
   await run(ffmpeg,['-v','error','-f','lavfi','-i','color=c=blue:s=160x90:r=10','-t','1','-an','-c:v','libx264',path.join(root,'video.mp4')],{windowsHide:true});
@@ -27,7 +31,7 @@ test('direct adaptive tracks download separately and complete as audible MP4',as
   await run(ffmpeg,['-v','error','-i',d.path,'-map','0:v:0','-map','0:a:0','-f','null','-'],{windowsHide:true});
 });
 
-test('separate HLS video and audio produce an MP4 with both decodable tracks', async t => {
+binaryTest('separate HLS video and audio produce an MP4 with both decodable tracks', async t => {
   const root=await fs.mkdtemp(path.join(os.tmpdir(),'zdm-mux-'));
   const run=promisify(execFile);
   const engine=await new DownloadEngine({dataDirectory:path.join(root,'state'),downloadDirectory:path.join(root,'out'),tickMs:20}).init();

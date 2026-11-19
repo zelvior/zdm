@@ -12,8 +12,8 @@ for (const key of ['electronDist', 'win', 'nsis', 'portable']) delete config[key
 
 config.extraResources = [
   // ffmpeg-static names its notices after the binary: ffmpeg.LICENSE here, ffmpeg.exe.LICENSE on Windows.
-  { from: 'node_modules/ffmpeg-static/ffmpeg.LICENSE', to: 'licenses/FFmpeg-LICENSE.txt' },
-  { from: 'node_modules/ffmpeg-static/ffmpeg.README', to: 'licenses/FFmpeg-BUILD.txt' },
+  { from: 'node_modules/ffmpeg-static/LICENSE', to: 'licenses/FFmpeg-LICENSE.txt' },
+  { from: 'node_modules/ffmpeg-static/README.md', to: 'licenses/FFmpeg-BUILD.txt' },
   { from: 'node_modules/ffmpeg-static/LICENSE', to: 'licenses/ffmpeg-static-LICENSE.txt' },
   { from: 'node_modules/googlevideo/LICENSE', to: 'licenses/googlevideo-LICENSE.txt' },
   { from: 'vendor', to: 'tools', filter: ['yt-dlp', '*.txt'] },

@@ -27,3 +27,5 @@ test-results/
 legacy/node_modules/
 legacy/stage/
 legacy/release/
+__pycache__/
+*.pyc

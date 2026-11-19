@@ -6,8 +6,11 @@ Public source and public binaries are separate steps. Do not publish a download 
 
 1. `npm ci && npm test` on Windows, Linux and macOS (the **Tests** workflow runs all three).
 2. Review the diff for private data and proprietary material.
-3. Verify third-party notices ([../THIRD-PARTY.md](../THIRD-PARTY.md)). Prepare and mirror the corresponding source for the bundled GPL
-   FFmpeg binary and its linked libraries next to the release assets, and record hashes. Review yt-dlp's bundled components too.
+3. Verify third-party notices ([../THIRD-PARTY.md](../THIRD-PARTY.md)). **Before attaching any binary**, run
+   `npm run source:ffmpeg -- dist` (or any output folder). It downloads the exact FFmpeg n6.1.1 source used by `ffmpeg-static`
+   5.3.0 plus that package's build scripts, verifies both against pinned SHA-256 digests, and writes `FFMPEG-SOURCE-SHA256.txt`.
+   Both release workflows now run this step and attach the archives to the GitHub release; a checksum mismatch fails the release.
+   Review yt-dlp's bundled components too.
 4. Build the installers (below) and test one on a clean Windows machine without Node.js: install, launch, connect the extension, take over
    a browser download, download a video, update over the old version, uninstall.
 5. Publish as a **pre-release** until clean-machine checks and known limits are documented.
@@ -24,7 +27,7 @@ Run **release-legacy.yml** from the Actions tab. Inputs:
 
 | Input | Meaning |
 |---|---|
-| `tag` | New tag such as `0.2.0` or `v0.2.0` (a missing `v` is added). Empty: `v<package version>-r<run number>` |
+| `tag` | New tag such as `0.3.0` or `v0.3.0` (a missing `v` is added). Empty: `v<package version>-r<run number>` |
 | `title` | Release title. Empty: `ZDM <tag>` |
 | `notes` | Your release notes, placed above the auto-generated commit list |
 | `prerelease` | Mark the release as a pre-release |

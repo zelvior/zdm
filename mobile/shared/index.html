@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ZDM Mobile</title>
+<style>
+  * { box-sizing: border-box }
+  body { margin: 0; padding: 16px; background: #0d0d0e; color: #f1f1ee; font: 15px/1.45 system-ui, sans-serif }
+  h1 { font-size: 20px; margin: 0 0 4px }
+  p.hint, .meta { color: #9b9b94; font-size: 12.5px }
+  textarea, input { width: 100%; background: #1c1c1e; color: inherit; border: 1px solid #2b2b2e; border-radius: 8px; padding: 10px; font: inherit }
+  textarea { min-height: 76px; resize: vertical }
+  button { background: #f1f1ee; color: #111; border: 0; border-radius: 8px; padding: 9px 13px; font-weight: 600 }
+  button.ghost { background: transparent; color: inherit; border: 1px solid #2b2b2e }
+  button:disabled { opacity: .4 }
+  .row { border: 1px solid #2b2b2e; border-radius: 10px; padding: 12px; margin: 10px 0 }
+  .row .name { font-weight: 600; overflow-wrap: anywhere }
+  .bar { height: 7px; background: #232326; border-radius: 99px; overflow: hidden; margin: 9px 0 6px }
+  .bar > span { display: block; height: 100%; background: #f1f1ee }
+  .actions { display: flex; gap: 8px; flex-wrap: wrap }
+  .error { color: #ff7b72; overflow-wrap: anywhere }
+  #status { min-height: 20px; margin: 10px 0 }
+</style>
+</head>
+<body>
+<h1>ZDM</h1>
+<p class="hint">Direct HTTP(S) downloads with byte ranges, resume and checksums. Browser takeover and page-video extraction are desktop-only.</p>
+<textarea id="urls" placeholder="One http:// or https:// link per line"></textarea>
+<p><input id="checksum" placeholder="Checksum (optional): sha256:… or md5:…"></p>
+<p><button id="add">Add downloads</button> <button id="refresh" class="ghost">Refresh</button></p>
+<p id="status" role="status"></p>
+<section id="list"></section>
+<script src="zdm.js"></script>
+<script>
+const $ = id => document.getElementById(id);
+const call = (method, payload) => window.zdmMobile.call(method, payload || {});
+const bytes = n => n >= 1073741824 ? (n / 1073741824).toFixed(2) + ' GB' : n >= 1048576 ? (n / 1048576).toFixed(1) + ' MB' : n >= 1024 ? Math.round(n / 1024) + ' KB' : n + ' B';
+let items = [];
+
+function render() {
+  const list = $('list');
+  list.replaceChildren();
+  for (const d of items) {
+    const row = document.createElement('div'); row.className = 'row';
+    const name = document.createElement('div'); name.className = 'name'; name.textContent = d.filename || d.url;
+    const meta = document.createElement('div'); meta.className = 'meta';
+    const percent = d.total > 0 ? Math.min(100, Math.round(d.downloaded / d.total * 100)) : 0;
+    meta.textContent = `${d.status} · ${bytes(d.downloaded)}${d.total > 0 ? ' / ' + bytes(d.total) + ' · ' + percent + '%' : ''}${d.connections ? ' · ' + d.connections + ' blocks' : ''}`;
+    const bar = document.createElement('div'); bar.className = 'bar';
+    const fill = document.createElement('span'); fill.style.width = percent + '%'; bar.append(fill);
+    const actions = document.createElement('div'); actions.className = 'actions';
+    const pause = document.createElement('button'); pause.textContent = 'Pause'; pause.disabled = !['downloading', 'queued'].includes(d.status);
+    pause.onclick = () => control(d.id, 'pause');
+    const resume = document.createElement('button'); resume.textContent = 'Resume'; resume.disabled = !['paused', 'error', 'cancelled'].includes(d.status);
+    resume.onclick = () => control(d.id, 'resume');
+    const cancel = document.createElement('button'); cancel.textContent = 'Cancel'; cancel.className = 'ghost';
+    cancel.disabled = ['complete', 'cancelled'].includes(d.status); cancel.onclick = () => control(d.id, 'cancel');
+    actions.append(pause, resume, cancel);
+    row.append(name, meta, bar, actions);
+    if (d.error) { const e = document.createElement('div'); e.className = 'error'; e.textContent = d.error; row.append(e); }
+    list.append(row);
+  }
+}
+
+async function refresh() {
+  const result = await call('status');
+  if (!result.ok) { $('status').textContent = result.error || 'Cannot reach the download service.'; return; }
+  items = result.items || [];
+  $('status').textContent = items.length ? '' : 'No downloads yet.';
+  render();
+}
+
+async function control(id, action) {
+  $('status').textContent = '…';
+  const result = await call('control', { id, action });
+  $('status').textContent = result.ok ? '' : (result.error || 'The action failed.');
+  await refresh();
+}
+
+$('add').onclick = async () => {
+  const urls = $('urls').value.split(/\r?\n/).map(x => x.trim()).filter(Boolean);
+  if (!urls.length) { $('status').textContent = 'Enter at least one link.'; return; }
+  for (const url of urls) {
+    try { const u = new URL(url); if (!['http:', 'https:'].includes(u.protocol)) throw new Error(); }
+    catch { $('status').textContent = 'Invalid address: ' + url; return; }
+  }
+  const checksum = $('checksum').value.trim();
+  $('status').textContent = 'Adding…';
+  const result = await call('downloads', { urls, ...(checksum && urls.length === 1 ? { checksum } : {}) });
+  if (!result.ok) { $('status').textContent = result.error || 'Could not add the downloads.'; return; }
+  $('urls').value = ''; $('checksum').value = ''; $('status').textContent = '';
+  await refresh();
+};
+$('refresh').onclick = refresh;
+setInterval(refresh, 1000);
+refresh();
+</script>
+</body>
+</html>

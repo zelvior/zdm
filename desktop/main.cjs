@@ -120,7 +120,7 @@ if (process.argv.includes('--native-host')) {
         openProgress: async ({id}) => {
           const d=engine.downloads.find(d=>d.id===id); if(!d)throw new Error('Download not found.');
           if(progressWindows.has(id)){showProgress(progressWindows.get(id));return;}
-          const progress=new BrowserWindow({width:565,height:485,minWidth:540,minHeight:440,title:d.filename,icon:appIconPath,backgroundColor:'#f0f0f0',autoHideMenuBar:true,webPreferences:{preload:path.join(__dirname,'preload.cjs'),contextIsolation:true,nodeIntegration:false,sandbox:true}});
+          const progress=new BrowserWindow({width:565,height:485,minWidth:500,minHeight:380,title:d.filename,icon:appIconPath,backgroundColor:'#f0f0f0',autoHideMenuBar:true,webPreferences:{preload:path.join(__dirname,'preload.cjs'),contextIsolation:true,nodeIntegration:false,sandbox:true}});
           progress.setMenu(null);progressWindows.set(id,progress);progressWindowSizes.set(progress,{expanded:{width:565,height:485}});
           if(d.status==='complete'){progress.setMinimumSize(470,270);progress.setSize(480,280);progress.setTitle('Download complete');}
           progress.on('closed',()=>progressWindows.delete(id));
@@ -174,8 +174,8 @@ if (process.argv.includes('--native-host')) {
         return handler(data);
       });
       ipcMain.handle('downloader:closeProgress',event=>{for(const progress of progressWindows.values())if(event.senderFrame===progress.webContents.mainFrame){progress.close();break;}});
-      ipcMain.handle('downloader:resizeProgress',(event,{expanded}={})=>{for(const progress of progressWindows.values())if(event.senderFrame===progress.webContents.mainFrame){const remembered=progressWindowSizes.get(progress)||{expanded:{width:565,height:485}},[width,height]=progress.getSize();if(expanded){progress.setMinimumSize(540,440);progress.setSize(Math.max(540,remembered.expanded.width),Math.max(440,remembered.expanded.height),true);}else{if(height>360)remembered.expanded={width,height};progressWindowSizes.set(progress,remembered);progress.setMinimumSize(540,325);progress.setSize(Math.max(540,width),340,true);}return;}});
-      window = new BrowserWindow({ width: 805, height: 465, minWidth: 760, minHeight: 450,
+      ipcMain.handle('downloader:resizeProgress',(event,{expanded}={})=>{for(const progress of progressWindows.values())if(event.senderFrame===progress.webContents.mainFrame){const remembered=progressWindowSizes.get(progress)||{expanded:{width:565,height:485}},[width,height]=progress.getSize();if(expanded){progress.setMinimumSize(500,380);progress.setSize(Math.max(500,remembered.expanded.width),Math.max(380,remembered.expanded.height),true);}else{if(height>330)remembered.expanded={width,height};progressWindowSizes.set(progress,remembered);progress.setMinimumSize(500,300);progress.setSize(Math.max(500,width),330,true);}return;}});
+      window = new BrowserWindow({ width: 805, height: 465, minWidth: 700, minHeight: 430,
         title: 'ZDM', icon: appIconPath, backgroundColor: '#f0f0f0', autoHideMenuBar: false,
         webPreferences: { preload: path.join(__dirname, 'preload.cjs'), contextIsolation: true, nodeIntegration: false, sandbox: true } });
       window.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));

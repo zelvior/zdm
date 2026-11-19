@@ -248,3 +248,50 @@ legend { padding: 0 8px; font-size: 12px; font-weight: 600; letter-spacing: .06e
 .integration-footer-note input { max-width: 140px; padding: 4px 8px; }
 
 @media (max-width: 900px) { .app-shell { grid-template-columns: 196px minmax(0, 1fr); } .download-row { grid-template-columns: 44px minmax(0, 1fr) 100px; } .row-progress { grid-column: 1 / -1; grid-row: 2; } }
+
+/* Small and short windows: keeping every control reachable matters more than keeping the desktop layout. */
+@media (max-width: 1100px) {
+  .summary { gap: 12px; padding: 12px 14px; }
+  .speed-card { min-width: 120px; }
+  .speed-card strong { font-size: 22px; }
+  .download-row { grid-template-columns: 44px minmax(0, 1fr) minmax(170px, 220px) 100px; gap: 10px; }
+}
+@media (max-width: 900px) {
+  .sidebar { padding: 12px 8px; }
+  .content { padding: 14px 14px 0; }
+  .table-scroll { margin: 0 -14px; padding: 2px 14px 24px; }
+  .bulk { flex-wrap: wrap; }
+}
+@media (max-width: 760px) {
+  .app-shell { grid-template-columns: 150px minmax(0, 1fr); }
+  .brand span, .nav-heading { display: none; }
+  .nav-item { padding: 8px; gap: 7px; font-size: 13px; }
+  .content { padding: 12px 12px 0; gap: 10px; }
+  .topbar { flex-wrap: wrap; }
+  .topbar .button.primary span { display: none; }
+  .topbar .button.primary { padding: 9px 12px; }
+  .summary { flex-wrap: wrap; }
+  .summary-text { flex-basis: 100%; order: 3; }
+  .selection-bar { flex-wrap: wrap; max-height: 112px; overflow: auto; }
+  .selection-name { flex-basis: 100%; }
+  .download-row { grid-template-columns: 36px minmax(0, 1fr); gap: 8px 10px; padding: 11px 12px; }
+  .row-icon { width: 36px; height: 36px; }
+  .row-progress { grid-column: 1 / -1; grid-row: 2; }
+  .pill { grid-column: 2; justify-self: start; }
+  .form-line { grid-template-columns: minmax(0, 1fr); gap: 4px; }
+  .form-line.address-line > label { padding-top: 0; }
+  .dialog-footer { flex-wrap: wrap; justify-content: stretch; }
+  .dialog-footer .button { flex: 1; }
+  .details-content { grid-template-columns: minmax(0, 1fr); gap: 2px; }
+  .connections-table th:nth-child(2) { width: 82px; }
+}
+@media (max-height: 620px) {
+  .sidebar { padding-top: 8px; }
+  .brand { padding-bottom: 8px; }
+  .nav-heading { margin-top: 8px; }
+  .content { padding-top: 10px; gap: 8px; }
+  .summary { padding: 8px 12px; }
+  .speed-card strong { font-size: 20px; }
+  dialog { max-height: calc(100vh - 12px); }
+  .dialog-title, .dialog-footer { padding-top: 8px; padding-bottom: 8px; }
+}

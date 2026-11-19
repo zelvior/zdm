@@ -1,0 +1,15 @@
+{
+  "$comment": "Native bridge contract implemented by both mobile builds. Mirrors core/bridge.mjs so the shared UI needs only a small adapter. Every field is validated natively with the same allow-lists as integration/native-host.cjs.",
+  "version": 1,
+  "methods": {
+    "status": { "request": {}, "response": { "ok": true, "items": "StatusItem[]", "settings": { "watchClipboard": false } } },
+    "downloads": {
+      "request": { "url": "string (http/https, no credentials)", "urls": "string[] (max 500)", "filename": "string? (safe basename)", "checksum": "sha256:<64 hex>|md5:<32 hex>?", "startNow": "boolean?" },
+      "response": { "ok": true, "ids": "string[]" }
+    },
+    "control": { "request": { "id": "uuid", "action": "pause|resume|retry|cancel" }, "response": { "ok": true } },
+    "formats": { "request": { "url": "youtube watch URL" }, "response": { "ok": false, "error": "Page-video extraction is desktop-only." } }
+  },
+  "errors": { "shape": { "ok": false, "error": "string (no URLs, cookies or headers)" }, "maxLength": 700 },
+  "limits": { "messageBytes": 1048576, "maxConcurrent": 4, "connectionsPerDownload": 4, "blockSize": 2097152, "checksumAlgorithms": ["md5", "sha256"] }
+}

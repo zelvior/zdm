@@ -89,7 +89,7 @@ async function rangeServer(size = 40 * 1024 * 1024) { // blocks are 2-4 MB, so N
 }
 for (const connections of [42, 56, 64]) {
   test(`${connections} parallel connections download a file correctly and really run in parallel`, async t => {
-    const { root, engine } = await setup(t);
+    const { engine } = await setup(t);
     const s = await rangeServer(connections * 2 * 1024 * 1024);
     t.after(() => new Promise(resolve => { s.server.close(resolve); s.server.closeAllConnections?.(); }));
     await engine.updateSettings({ connections, maxConcurrent: 1 });

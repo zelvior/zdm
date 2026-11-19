@@ -1,0 +1,150 @@
+name: Build and release mobile apps (APK + IPA)
+
+# Native mobile builds of ZDM. Both engines implement segmented HTTP(S) downloads with resume and checksums.
+# APKs are unsigned (sideloadable); the IPA must be re-signed with an Apple identity before installation.
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Existing release tag to attach to, e.g. v0.3.0 (a missing v is added). Empty = v<package version>-r<run number>'
+        required: false
+        default: ''
+      title:
+        description: 'Release title when a NEW release is created (empty = "ZDM <tag>")'
+        required: false
+        default: ''
+      prerelease:
+        description: 'Mark a NEW release as pre-release'
+        type: boolean
+        default: true
+permissions:
+  contents: read
+jobs:
+  android:
+    name: Android APKs (32-bit, 64-bit, universal)
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: android-actions/setup-android@v3
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+      - name: Build unsigned APKs
+        run: gradle -p mobile/android assembleRelease --no-daemon
+      - name: Rename APKs for the release
+        shell: bash
+        run: |
+          set -euo pipefail
+          dir=mobile/android/app/build/outputs/apk/release
+          ls -l "$dir"
+          test -f "$dir/app-universal-release-unsigned.apk"
+          cp "$dir/app-universal-release-unsigned.apk" ZDM-Android-universal.apk
+          cp "$dir/app-armeabi-v7a-release-unsigned.apk" ZDM-Android-armeabi-v7a.apk
+          cp "$dir/app-arm64-v8a-release-unsigned.apk" ZDM-Android-arm64-v8a.apk
+          sha256sum ZDM-Android-*.apk > SHA256SUMS-android.txt
+      - uses: actions/upload-artifact@v7
+        with:
+          name: mobile-android
+          path: |
+            ZDM-Android-*.apk
+            SHA256SUMS-android.txt
+          if-no-files-found: error
+          retention-days: 7
+  ios:
+    name: iOS unsigned IPA (64-bit)
+    runs-on: macos-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v6
+      - name: Install xcodegen
+        run: brew install xcodegen
+      - name: Generate the Xcode project
+        working-directory: mobile/ios
+        run: xcodegen generate --spec project.yml
+      - name: Build an unsigned app
+        working-directory: mobile/ios
+        run: |
+          xcodebuild -project ZDM.xcodeproj -scheme ZDM -configuration Release \
+            -sdk iphoneos -destination 'generic/platform=iOS' \
+            -archivePath build/ZDM.xcarchive \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO archive
+      - name: Package and rename the IPA
+        working-directory: mobile/ios
+        run: |
+          set -euo pipefail
+          mkdir -p build/Payload
+          cp -R build/ZDM.xcarchive/Products/Applications/ZDM.app build/Payload/
+          cd build
+          zip -qry "$GITHUB_WORKSPACE/ZDM-iOS-unsigned.ipa" Payload
+          cd "$GITHUB_WORKSPACE"
+          shasum -a 256 ZDM-iOS-unsigned.ipa > SHA256SUMS-ios.txt
+          ls -l ZDM-iOS-unsigned.ipa SHA256SUMS-ios.txt
+      - uses: actions/upload-artifact@v7
+        with:
+          name: mobile-ios
+          path: |
+            ZDM-iOS-unsigned.ipa
+            SHA256SUMS-ios.txt
+          if-no-files-found: error
+          retention-days: 7
+  release:
+    needs: [android, ios]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/download-artifact@v8
+        with:
+          path: dist
+          merge-multiple: true
+      - name: Publish mobile builds
+        env:
+          GH_TOKEN: ${{ github.token }}
+          IN_TAG: ${{ inputs.tag }}
+          IN_TITLE: ${{ inputs.title }}
+          IN_PRERELEASE: ${{ inputs.prerelease }}
+        run: |
+          set -euo pipefail
+          VERSION=$(node -p "require('./package.json').version")
+          TAG="${IN_TAG:-v${VERSION}-r${GITHUB_RUN_NUMBER}}"
+          TAG="$(printf '%s' "$TAG" | tr -d '[:space:]')"
+          case "$TAG" in v*|V*) TAG="v${TAG#?}";; *) TAG="v${TAG}";; esac
+          if ! printf '%s' "$TAG" | grep -Eq '^v[0-9]+(\.[0-9]+)*([-+][0-9A-Za-z]+(\.[0-9A-Za-z]+)*)?$'; then
+            echo "::error::Tag must look like 0.3.0 or v0.3.0 (got '$TAG')"; exit 1
+          fi
+          TITLE="${IN_TITLE:-ZDM ${TAG} mobile builds}"
+          cd dist
+          ls -l
+          cat > ../notes.md <<NOTES
+          ## ${TITLE}
+
+          Native ZDM mobile builds with a working segmented download engine: HTTP(S) byte ranges, four parallel blocks,
+          resume after restart, pause/resume/cancel and MD5/SHA-256 verification. Output goes to the app's own Downloads
+          folder; files are never written to an arbitrary host path. See [docs/MOBILE.md](https://github.com/zelvior/zdm/blob/main/docs/MOBILE.md).
+
+          | File | What it is |
+          |---|---|
+          | \`ZDM-Android-universal.apk\` | Unsigned APK with both 32-bit and 64-bit ABIs |
+          | \`ZDM-Android-armeabi-v7a.apk\` | Unsigned 32-bit-only APK for legacy devices |
+          | \`ZDM-Android-arm64-v8a.apk\` | Unsigned 64-bit-only APK |
+          | \`ZDM-iOS-unsigned.ipa\` | Unsigned 64-bit IPA (re-sign before installing) |
+
+          Browser download takeover, page-video extraction/yt-dlp and FFmpeg/HLS remuxing remain desktop-only features;
+          they are not part of these mobile builds.
+
+          Verify with \`SHA256SUMS-android.txt\` and \`SHA256SUMS-ios.txt\`.
+          NOTES
+          FLAGS=""; if [ "${IN_PRERELEASE}" = "true" ]; then FLAGS="--prerelease"; fi
+          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release upload "$TAG" ZDM-Android-*.apk ZDM-iOS-unsigned.ipa SHA256SUMS-android.txt SHA256SUMS-ios.txt --clobber --repo "$GITHUB_REPOSITORY"
+          else
+            gh release create "$TAG" ZDM-Android-*.apk ZDM-iOS-unsigned.ipa SHA256SUMS-android.txt SHA256SUMS-ios.txt \
+              --title "$TITLE" --notes-file ../notes.md $FLAGS --target "$GITHUB_SHA" --repo "$GITHUB_REPOSITORY"
+          fi
