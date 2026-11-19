@@ -367,8 +367,12 @@ final class DownloadService {
         activeCount += 1
         lock.unlock()
         DispatchQueue.global(qos: .userInitiated).async {
+            BackgroundActivity.shared.begin()
             self.start(item)
-            self.lock.lock(); self.activeCount -= 1; self.lock.unlock()
+            self.lock.lock(); self.activeCount -= 1
+            let idle = self.activeCount == 0
+            self.lock.unlock()
+            if idle { BackgroundActivity.shared.endIfIdle(active: 0) }
             self.drainQueue()
         }
     }
@@ -426,7 +430,7 @@ final class DownloadService {
             }
             guard total > 0 else { throw lastError ?? NSError(domain: "ZDM", code: 1, userInfo: [NSLocalizedDescriptionKey: "The server did not report a file size."]) }
 
-            let connections = (settings["connections"] as? Int ?? 16)
+            let connections = min(64, max(1, settings["connections"] as? Int ?? 16))
             let blockSize = max(minBlock, (total + Int64(connections) - 1) / Int64(connections))
             lock.lock()
             item.total = total; item.error = nil
@@ -577,8 +581,10 @@ final class DownloadService {
         lock.lock()
         item.filename = destination.lastPathComponent
         item.status = "complete"; item.downloaded = item.total; item.speed = 0
+        let name = item.filename
         lock.unlock()
         persist()
+        BackgroundActivity.shared.notifyCompletion(filename: name)
     }
 
     private func tempURL(_ item: Item) -> URL { root.appendingPathComponent("\(item.id).part") }

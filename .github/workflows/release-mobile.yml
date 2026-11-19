@@ -126,8 +126,9 @@ jobs:
           ## ${TITLE}
 
           Native ZDM mobile builds with the full desktop renderer UI and bridge API: scheduling, mirrors, checksums,
-          clipboard, settings, page media discovery, segmented HTTP(S) transfers with resume, pause/resume/cancel and
-          MD5/SHA-256 verification. Output goes to the app's own Downloads folder. Browser native messaging, FFmpeg
+          clipboard, settings, page media discovery, segmented HTTP(S) transfers with up to 64 parallel connections,
+          resume, pause/resume/cancel, background progress notifications and MD5/SHA-256 verification. Output goes to
+          the app's own Downloads folder. Browser native messaging, FFmpeg
           transcoding and arbitrary filesystem paths are desktop-only; see [docs/MOBILE.md](https://github.com/zelvior/zdm/blob/main/docs/MOBILE.md).
 
           | File | What it is |

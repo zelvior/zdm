@@ -47,13 +47,15 @@ test('the native engines implement ranges, resume, checksums and cancellation ge
   const kotlin = read('mobile/android/app/src/main/java/com/zelvior/zdm/DownloadService.kt');
   for (const token of ['Accept-Ranges', 'bytes=$from-${block.end}', 'Content-Range', 'CountDownLatch',
     'state.json', 'MessageDigest', 'generation', 'pause', 'snapshot', 'settings', 'clipboard',
-    'formats', 'review', 'scheduledAt', 'mirrors', 'maxConcurrent']) {
+    'formats', 'review', 'scheduledAt', 'mirrors', 'maxConcurrent', 'blockPool',
+    'coerceIn(1, 64)']) {
     assert.ok(kotlin.includes(token), `Kotlin engine is missing ${token}`);
   }
   const swift = read('mobile/ios/ZDM/DownloadService.swift');
   for (const token of ['Range', 'URLSession', 'state.json', 'Insecure.MD5', 'SHA256', 'generation',
     'DispatchQueue.global', 'snapshot', 'settings', 'UIPasteboard', 'formats', 'review',
-    'scheduledAt', 'mirrors', 'maxConcurrent', 'ytInitialPlayerResponse']) {
+    'scheduledAt', 'mirrors', 'maxConcurrent', 'ytInitialPlayerResponse', 'BackgroundActivity',
+    'min(64, max(1']) {
     assert.ok(swift.includes(token), `Swift engine is missing ${token}`);
   }
 });
@@ -123,6 +125,20 @@ test('the shared mobile UI wires all three bridge methods and checksum input', (
     'formats', 'review', 'settings', 'clipboard', 'chooseDirectory', 'integration', 'browserSetup', 'openProgress', 'about']);
   assert.match(contract.methods.add.request.checksum, /sha256/);
   assert.equal(contract.limits.blockSize, 2 * 1024 * 1024);
+});
+
+test('mobile builds keep downloads alive in the background and allow 64 split connections', () => {
+  const manifest = read('mobile/android/app/src/main/AndroidManifest.xml');
+  assert.match(manifest, /FOREGROUND_SERVICE_DATA_SYNC/);
+  assert.match(manifest, /android:foregroundServiceType="dataSync"/);
+  const settings = read('renderer/index.html');
+  assert.match(settings, /id="connections"[^>]*max="64"/);
+  const iosBackground = read('mobile/ios/ZDM/BackgroundActivity.swift');
+  assert.match(iosBackground, /beginBackgroundTask/);
+  assert.match(iosBackground, /UNUserNotificationCenter/);
+  const androidService = read('mobile/android/app/src/main/java/com/zelvior/zdm/TransferForegroundService.kt');
+  assert.match(androidService, /startForeground\(/);
+  assert.match(androidService, /setProgress\(/);
 });
 
 test('the mobile release workflow publishes native builds, not prototype shells', () => {

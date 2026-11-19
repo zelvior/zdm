@@ -14,6 +14,8 @@ Both native engines implement the desktop bridge surface:
 - `add` / `downloads` with one or many links, mirrors, custom filename, category, note, schedule time, checksum,
   page-extraction flag, output format and queue-only mode.
 - `control` / `action` for pause, resume, retry, cancel, remove, open, reveal, start and stop.
+- **Background activity:** Android runs a `dataSync` foreground service with a live progress notification; iOS holds a
+  `UIApplication` background task during a transfer and posts a local notification when a file completes.
 - `settings` for concurrency, connections per file, speed limit, hash verification, notifications, clipboard watching
   and all other renderer settings. Settings are persisted in `state.json`.
 - `clipboard` (Android `ClipboardManager`, iOS `UIPasteboard`) and `chooseDirectory` (the app's own output folder).
@@ -22,10 +24,12 @@ Both native engines implement the desktop bridge surface:
 - `integration`, `browserSetup`, `registerBrowser`, `registerCustom`, `removeCustom`, `openProgress`, `about` and the
   progress-window methods return mobile-appropriate responses so every desktop screen still works.
 
-The transfer engine itself keeps the desktop behaviour that fits a phone: HTTP(S) `HEAD` probing, mirror failover,
-byte-range blocks sized from the connections setting (minimum 2 MiB), four worker slots, retries, pause/resume/cancel,
-persisted block offsets, speed reporting and MD5/SHA-256 verification. A generation counter prevents a cancelled
-worker from finalising a file after a restart.
+The transfer engine keeps the desktop split-download behaviour: HTTP(S) `HEAD` probing, mirror failover, byte-range
+blocks sized from the connections setting (minimum 2 MiB), retries, pause/resume/cancel, persisted block offsets, speed
+reporting and MD5/SHA-256 verification. The `connections` setting accepts **1–64** (default 16), the same ceiling as the
+desktop app; Android uses a dedicated 64-thread block pool so 64 ranges really run in parallel, and iOS dispatches up to
+64 block tasks through `DispatchQueue.global`. Four download slots are scheduled independently. A generation counter
+prevents a cancelled worker from finalising a file after a restart.
 
 | Target | Architecture | Build artifact | Installation |
 |---|---|---|---|
@@ -45,7 +49,9 @@ A small number of desktop capabilities depend on operating-system facilities tha
 - **Arbitrary filesystem paths** are replaced by the app's own Downloads/Documents folder; neither OS allows writing
   anywhere without a system picker/SAF integration.
 - **iOS 32-bit builds cannot exist** (Apple ended support in iOS 11), so only 64-bit iOS is shipped.
-- **iOS background segmented transfers** are constrained by `URLSession`; downloads continue while the app is active.
+- **iOS background segmented transfers** are constrained by the OS: a background task keeps the app alive briefly after
+  the screen locks, but a long transfer still needs the app in the foreground. Android's foreground service has no such
+  restriction.
 - The iOS build sets `NSAllowsArbitraryLoads` so `http://` links work outside the WKWebView; prefer HTTPS and remove
   this exception before a strict App Store submission.
 - Mobile builds are unsigned; users must trust the source and verify the published SHA-256 sums.

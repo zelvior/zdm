@@ -64,7 +64,8 @@ private class Item(
  */
 object DownloadService {
     private val client = OkHttpClient.Builder().build()
-    private val pool = Executors.newFixedThreadPool(8)
+    private val schedulerPool = Executors.newFixedThreadPool(8)
+    private val blockPool = Executors.newFixedThreadPool(64)
     private val items = ConcurrentHashMap<String, Item>()
     private val active = AtomicInteger(0)
     private lateinit var root: File
@@ -201,7 +202,7 @@ object DownloadService {
             items[item.id] = item
             ids.put(item.id)
             if (extract) {
-                pool.execute { prepareReview(item) }
+                schedulerPool.execute { prepareReview(item) }
             } else if (item.status != "paused") {
                 enqueue(item)
             }
@@ -394,7 +395,7 @@ object DownloadService {
             return
         }
         active.incrementAndGet()
-        pool.execute {
+        schedulerPool.execute {
             try { start(item) } finally { active.decrementAndGet(); drainQueue() }
         }
     }
@@ -460,8 +461,8 @@ object DownloadService {
             RandomAccessFile(temp, "rw").use { it.setLength(total) }
             persist()
             val latch = CountDownLatch(item.blocks.size)
-            for (index in item.blocks.indices) pool.execute { downloadBlock(item, index, temp, latch, generation, ranged) }
-            pool.execute {
+            for (index in item.blocks.indices) blockPool.execute { downloadBlock(item, index, temp, latch, generation, ranged) }
+            schedulerPool.execute {
                 latch.await()
                 if (!item.cancelled.get() && synchronized(this) { item.generation } == generation) finish(item, temp)
                 item.running.set(false)
