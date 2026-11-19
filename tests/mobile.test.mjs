@@ -55,6 +55,15 @@ test('the native engines implement ranges, resume, checksums and cancellation ge
   }
 });
 
+test('the iOS project targets 64-bit devices and permits direct HTTP downloads', () => {
+  const plist = read('mobile/ios/ZDM/Info.plist');
+  assert.match(plist, /<key>UIRequiredDeviceCapabilities<\/key><array><string>arm64<\/string><\/array>/);
+  assert.match(plist, /NSAllowsArbitraryLoads/);
+  const spec = read('mobile/ios/project.yml');
+  assert.match(spec, /IPHONEOS_DEPLOYMENT_TARGET: "13.0"/);
+  assert.match(spec, /path: \.\.\/shared/);
+});
+
 test('the shared mobile UI wires all three bridge methods and checksum input', () => {
   const html = read('mobile/shared/index.html');
   for (const token of ['zdm.js', "call('status')", "call('downloads'", "call('control'", 'id="checksum"']) {

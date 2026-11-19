@@ -33,6 +33,8 @@ iOS uses a `WKScriptMessageHandler` plus `window.zdmResolve`. Both surface the s
   writing anywhere the user chooses without a system picker/SAF integration.
 - iOS background segmented transfers are constrained by `URLSession` rules; downloads continue only while the app is
   active. A foreground service/WorkManager path is not wired up yet.
+- The iOS build sets `NSAllowsArbitraryLoads` so direct `http://` links work outside the WKWebView; prefer HTTPS links
+  and remove this exception before any App Store submission that needs strict ATS.
 - iOS 32-bit builds cannot exist. The legacy Android 32-bit APK remains supported.
 - Mobile builds are unsigned; users must trust the source and verify the published SHA-256 sums.
 

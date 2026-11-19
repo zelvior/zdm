@@ -256,7 +256,7 @@ final class DownloadService {
 
         let handle = try FileHandle(forWritingTo: temp)
         (handle as NSFileHandle).seek(toFileOffset: UInt64(from))
-        try handle.write(contentsOf: received)
+        (handle as NSFileHandle).write(received)
         try? handle.close()
         lock.lock()
         block.done += Int64(received.count)
