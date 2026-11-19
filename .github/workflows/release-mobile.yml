@@ -1,7 +1,7 @@
 name: Build and release mobile apps (APK + IPA)
 
 # Native mobile builds of ZDM. Both engines implement segmented HTTP(S) downloads with resume and checksums.
-# APKs are unsigned (sideloadable); the IPA must be re-signed with an Apple identity before installation.
+# APKs are signed with the repository's public sideload key so they install directly; the IPA must be re-signed.
 on:
   workflow_dispatch:
     inputs:
@@ -45,18 +45,28 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.9'
-      - name: Build unsigned APKs
+      - name: Build release APKs
         run: gradle -p mobile/android assembleRelease --no-daemon
-      - name: Rename APKs for the release
+      - name: Align, sign and rename APKs
         shell: bash
         run: |
           set -euo pipefail
           dir=mobile/android/app/build/outputs/apk/release
+          tools="$ANDROID_HOME/build-tools/34.0.0"
           ls -l "$dir"
-          test -f "$dir/app-universal-release-unsigned.apk"
-          cp "$dir/app-universal-release-unsigned.apk" ZDM-Android-universal.apk
-          cp "$dir/app-armeabi-v7a-release-unsigned.apk" ZDM-Android-armeabi-v7a.apk
-          cp "$dir/app-arm64-v8a-release-unsigned.apk" ZDM-Android-arm64-v8a.apk
+          for abi in universal armeabi-v7a arm64-v8a; do
+            source="$dir/app-${abi}-release-unsigned.apk"
+            test -f "$source"
+            "$tools/zipalign" -f -p 4 "$source" "${abi}-aligned.apk"
+            "$tools/apksigner" sign \
+              --ks mobile/android/zdm-release.p12 --ks-type PKCS12 \
+              --ks-pass pass:zdm-sideload --key-pass pass:zdm-sideload \
+              --ks-key-alias zdm "${abi}-aligned.apk"
+            "$tools/apksigner" verify --verbose "${abi}-aligned.apk"
+          done
+          cp universal-aligned.apk ZDM-Android-universal.apk
+          cp armeabi-v7a-aligned.apk ZDM-Android-armeabi-v7a.apk
+          cp arm64-v8a-aligned.apk ZDM-Android-arm64-v8a.apk
           sha256sum ZDM-Android-*.apk > SHA256SUMS-android.txt
       - uses: actions/upload-artifact@v7
         with:
@@ -144,15 +154,18 @@ jobs:
 
           | File | What it is |
           |---|---|
-          | \`ZDM-Android-universal.apk\` | Unsigned APK with both 32-bit and 64-bit ABIs |
-          | \`ZDM-Android-armeabi-v7a.apk\` | Unsigned 32-bit-only APK for legacy devices |
-          | \`ZDM-Android-arm64-v8a.apk\` | Unsigned 64-bit-only APK |
+          | \`ZDM-Android-universal.apk\` | Signed APK with both 32-bit and 64-bit ABIs |
+          | \`ZDM-Android-armeabi-v7a.apk\` | Signed 32-bit-only APK for legacy devices |
+          | \`ZDM-Android-arm64-v8a.apk\` | Signed 64-bit-only APK |
           | \`ZDM-iOS-unsigned.ipa\` | Unsigned 64-bit IPA (re-sign before installing) |
 
           Browser download takeover/native messaging and FFmpeg/HLS transcoding still require desktop operating-system
           facilities; the share sheet, clipboard and direct media links cover the equivalent mobile flows.
 
-          Verify with \`SHA256SUMS-android.txt\` and \`SHA256SUMS-ios.txt\`.
+          Android APKs use a public sideload signing key committed to this repository; it proves nothing about the
+          publisher. Verify downloads with \`SHA256SUMS-android.txt\` and \`SHA256SUMS-ios.txt\`. If an older ZDM build
+          was signed with a different key, uninstall it before installing this one.
+
           NOTES
           FLAGS=""; if [ "${IN_PRERELEASE}" = "true" ]; then FLAGS="--prerelease"; fi
           if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then

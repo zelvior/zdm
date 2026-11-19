@@ -152,6 +152,17 @@ test('the Android workflow does not depend on the retired SDK tools package', ()
   assert.ok(!workflow.includes('chmod +x'), 'sdkmanager is already executable on GitHub runners');
 });
 
+test('Android release APKs are signed so they can be installed', () => {
+  const workflow = read('.github/workflows/release-mobile.yml');
+  for (const token of ['zipalign', '"$tools/apksigner" sign', '"$tools/apksigner" verify', 'zdm-release.p12', '--ks-type PKCS12']) {
+    assert.ok(workflow.includes(token), `workflow is missing ${token}`);
+  }
+  assert.ok(!/Unsigned APK/.test(workflow), 'release notes must not offer uninstallable unsigned APKs');
+  const keystore = new URL('../mobile/android/zdm-release.p12', import.meta.url);
+  assert.ok(fs.existsSync(keystore), 'the public sideload keystore must exist');
+  assert.ok(fs.statSync(keystore).size > 1000, 'the keystore must contain a key and certificate');
+});
+
 test('the Android Kotlin and Java bytecode targets match', () => {
   const gradle = read('mobile/android/app/build.gradle.kts');
   assert.match(gradle, /sourceCompatibility\s*=\s*JavaVersion\.VERSION_1_8/);
