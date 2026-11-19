@@ -111,7 +111,7 @@ test('the iOS project targets 64-bit devices and permits direct HTTP downloads',
   assert.match(plist, /<key>UIRequiredDeviceCapabilities<\/key><array><string>arm64<\/string><\/array>/);
   assert.match(plist, /NSAllowsArbitraryLoads/);
   const spec = read('mobile/ios/project.yml');
-  assert.match(spec, /IPHONEOS_DEPLOYMENT_TARGET: "13.0"/);
+  assert.match(spec, /IPHONEOS_DEPLOYMENT_TARGET: "13.4"/);
   assert.match(spec, /path: \.\.\/shared/);
 });
 
@@ -128,17 +128,27 @@ test('the shared mobile UI wires all three bridge methods and checksum input', (
 });
 
 test('mobile builds keep downloads alive in the background and allow 64 split connections', () => {
+  const swiftSource = read('mobile/ios/ZDM/DownloadService.swift');
   const manifest = read('mobile/android/app/src/main/AndroidManifest.xml');
   assert.match(manifest, /FOREGROUND_SERVICE_DATA_SYNC/);
   assert.match(manifest, /android:foregroundServiceType="dataSync"/);
   const settings = read('renderer/index.html');
   assert.match(settings, /id="connections"[^>]*max="64"/);
+  assert.ok(!swiftSource.includes('NSFileHandle'), 'NSFileHandle is obsolete in the current SDK');
   const iosBackground = read('mobile/ios/ZDM/BackgroundActivity.swift');
   assert.match(iosBackground, /beginBackgroundTask/);
   assert.match(iosBackground, /UNUserNotificationCenter/);
   const androidService = read('mobile/android/app/src/main/java/com/zelvior/zdm/TransferForegroundService.kt');
   assert.match(androidService, /startForeground\(/);
   assert.match(androidService, /setProgress\(/);
+});
+
+test('the Android workflow does not depend on the retired SDK tools package', () => {
+  const workflow = read('.github/workflows/release-mobile.yml');
+  assert.ok(!workflow.includes('android-actions/setup-android'));
+  assert.match(workflow, /Prepare Android SDK/);
+  assert.match(workflow, /platforms;android-34/);
+  assert.match(workflow, /build-tools;34\.0\.0/);
 });
 
 test('the mobile release workflow publishes native builds, not prototype shells', () => {
