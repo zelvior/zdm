@@ -152,6 +152,13 @@ test('the Android workflow does not depend on the retired SDK tools package', ()
   assert.ok(!workflow.includes('chmod +x'), 'sdkmanager is already executable on GitHub runners');
 });
 
+test('the Android Kotlin and Java bytecode targets match', () => {
+  const gradle = read('mobile/android/app/build.gradle.kts');
+  assert.match(gradle, /sourceCompatibility\s*=\s*JavaVersion\.VERSION_1_8/);
+  assert.match(gradle, /targetCompatibility\s*=\s*JavaVersion\.VERSION_1_8/);
+  assert.match(gradle, /jvmTarget\s*=\s*"1\.8"/);
+});
+
 test('the Android Gradle build declares dependency repositories', () => {
   const settings = read('mobile/android/settings.gradle.kts');
   assert.match(settings, /dependencyResolutionManagement/);

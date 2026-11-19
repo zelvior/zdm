@@ -11,6 +11,11 @@ android {
         versionName = "0.3.0"
         ndk { abiFilters += listOf("armeabi-v7a", "arm64-v8a") }
     }
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_1_8
+        targetCompatibility = JavaVersion.VERSION_1_8
+    }
+    kotlinOptions { jvmTarget = "1.8" }
     buildTypes { release { isMinifyEnabled = false } }
     splits {
         abi {
